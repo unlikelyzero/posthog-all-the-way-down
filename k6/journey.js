@@ -19,6 +19,9 @@ const KEY_DELAY_MS = 120 // fixed per-key delay so debounce behavior is reproduc
 const SETTLE_MS = 3000
 // Flags the journey waits for before running (drift demo): e.g. WAIT_FOR_FLAG=meetup-no-debounce
 const WAIT_FOR_FLAG = __ENV.WAIT_FOR_FLAG
+// Slide recording (slides/record-journey.sh): screenshot frames into this directory while the journey runs.
+// Recording changes the viewport and timing, so never score a recorded run.
+const FRAMES_DIR = __ENV.FRAMES_DIR
 
 const isAppApi = (req) => {
   const type = req.resourceType().toLowerCase() // k6 reports 'Fetch' / 'XHR'
@@ -33,7 +36,7 @@ export function setup() {
 }
 
 export default async function (auth) {
-  const context = await browser.newContext()
+  const context = await browser.newContext(FRAMES_DIR ? { viewport: { width: 1440, height: 900 } } : {})
   const host = BASE.replace(/^https?:\/\//, '').split(/[:/]/)[0]
   await context.addCookies([
     { name: 'sessionid', value: auth.sessionid, domain: host, path: '/' },
@@ -41,9 +44,13 @@ export default async function (auth) {
   ])
   await context.addInitScript(`localStorage.setItem('meetup_run_id', ${JSON.stringify(RUN_ID)})`)
   const page = await context.newPage()
+  let calls = 0
   page.on('request', (req) => {
-    if (isAppApi(req)) apiCalls.add(1, { route: routeKey(req.method(), req.url(), req.postData()) })
+    if (!isAppApi(req)) return
+    calls++
+    apiCalls.add(1, { route: routeKey(req.method(), req.url(), req.postData()) })
   })
+  const recording = FRAMES_DIR ? record(page, () => calls) : null
 
   try {
     await page.goto(`${BASE}/feature_flags`, { waitUntil: 'networkidle' })
@@ -63,6 +70,7 @@ export default async function (auth) {
     // posthog-js batches metrics every 10 s; flush so the cross-check sees the tail of the run.
     await page.evaluate(() => window.posthog?.metrics?.flush())
   } finally {
+    if (recording) await recording.stop()
     await page.close()
     await context.close()
   }
@@ -80,4 +88,18 @@ async function waitForFlag(page, key) {
     }
   }
   throw new Error(`flag ${key} never turned on`)
+}
+
+// Screenshots as fast as the browser allows; each frame logs its time and the calls captured so far.
+function record(page, calls) {
+  let on = true
+  const start = Date.now()
+  const loop = (async () => {
+    for (let n = 1; on; n++) {
+      const file = `f-${String(n).padStart(4, '0')}.jpg`
+      await page.screenshot({ path: `${FRAMES_DIR}/${file}`, type: 'jpeg', quality: 70 })
+      console.log(`FRAME ${file} ${Date.now() - start} ${calls()}`)
+    }
+  })()
+  return { stop: async () => { on = false; await loop } }
 }
