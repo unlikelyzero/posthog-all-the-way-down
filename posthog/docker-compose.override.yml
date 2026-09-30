@@ -1,0 +1,34 @@
+# Apply on top of PostHog's docker-compose.hobby.yml (same directory as that file):
+#   docker compose -f docker-compose.hobby.yml -f docker-compose.override.yml up -d
+# with POSTHOG_NODE_TAG=meetup (see README: the node image is retagged locally).
+services:
+  web:
+    image: posthog-meetup:local
+    environment:
+      SELF_CAPTURE: 'true' # posthog/settings/base_variables.py:51
+      POSTHOG_SELF_TEAM_ID: '1' # posthog/utils.py get_self_capture_team_id: UI captures and evaluates flags against team 1
+  worker:
+    image: posthog-meetup:local
+  # The hobby compose file doesn't run the service that moves metrics from Kafka topic
+  # metrics_ingestion (written by capture-logs) to clickhouse_metrics. Without it posthog.metrics
+  # stays empty. Mode verified in nodejs/src/common/config.ts (PluginServerMode.ingestion_metrics).
+  ingestion-metrics:
+    extends: { file: docker-compose.base.yml, service: ingestion-logs }
+    image: ${REGISTRY_URL}-node:${POSTHOG_NODE_TAG:-latest}
+    environment:
+      PLUGIN_SERVER_MODE: 'ingestion-metrics'
+      METRICS_REDIS_HOST: redis7
+      METRICS_REDIS_TLS: 'false'
+    depends_on: [db, redis7, kafka]
+  # PostHog's own MCP server (services/mcp), pointed at this instance. Claude Code reaches it at
+  # http://localhost:8787/mcp with a personal API key (see .mcp.json).
+  mcp:
+    image: ghcr.io/posthog/posthog-mcp:latest
+    environment:
+      POSTHOG_API_BASE_URL: http://web:8000
+      POSTHOG_PUBLIC_URL: http://localhost
+      REDIS_URL: redis://redis7:6379
+      PORT: '3001'
+      HOST: 0.0.0.0
+    ports: ['8787:3001']
+    depends_on: [web, redis7]
