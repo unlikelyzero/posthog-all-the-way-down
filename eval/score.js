@@ -9,7 +9,7 @@
 // POSTHOG_PROJECT_API_KEY (sends meetup_eval_result).
 // Exit code: 0 when every gate passes, 1 otherwise.
 import { readFileSync, writeFileSync } from 'node:fs'
-import { routeKey, template, withoutKind } from '../k6/route.js'
+import { isIgnoredPath, routeKey, template, withoutKind } from '../k6/route.js'
 
 // Starting values from DESIGN.md §5.1; replace with the calibrated numbers (§5.2).
 export const THRESHOLDS = { C: 0.95, M: 0.85, E: 0.02, errors: 0.01 }
@@ -80,13 +80,17 @@ export function agreement(ref, posthogRows) {
   return 1 - l1 / 2
 }
 
-const CROSSCHECK_SQL = `SELECT attributes['http.request.method'] AS method,
-       attributes['url.template'] AS route,
-       sum(count) AS calls
-FROM posthog.metrics
-WHERE metric_name = 'http.client.request.duration'
-  AND service_name = 'posthog-app'
-  AND attributes['meetup.run_id'] = {run_id}
+// Metric attributes live on posthog.metric_series, keyed by series_fingerprint; posthog.metrics holds the
+// pre-aggregated histogram rows, so calls = sum(count).
+const CROSSCHECK_SQL = `SELECT s.attributes['http.request.method'] AS method,
+       s.attributes['url.template'] AS route,
+       sum(m.count) AS calls
+FROM posthog.metrics AS m
+JOIN (SELECT series_fingerprint, any(attributes) AS attributes FROM posthog.metric_series GROUP BY series_fingerprint) AS s
+  ON m.series_fingerprint = s.series_fingerprint
+WHERE m.metric_name = 'http.client.request.duration'
+  AND m.service_name = 'posthog-app'
+  AND s.attributes['meetup.run_id'] = {run_id}
 GROUP BY method, route`
 
 async function crosscheck(runId, deadlineMs = 20000) {
@@ -103,7 +107,8 @@ async function crosscheck(runId, deadlineMs = 20000) {
       })
       if (res.ok) {
         const rows = (await res.json()).results || []
-        if (rows.length) return rows.map(([m, r, n]) => ({ route: `${m} ${r}`, value: Number(n) }))
+        const kept = rows.filter(([, r]) => !isIgnoredPath(r))
+        if (kept.length) return kept.map(([m, r, n]) => ({ route: `${m} ${r}`, value: Number(n) }))
       }
     } catch (_) {
       // retry until the deadline

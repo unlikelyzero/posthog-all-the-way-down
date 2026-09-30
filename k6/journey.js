@@ -3,7 +3,7 @@
 import { browser } from 'k6/browser'
 import { Counter } from 'k6/metrics'
 import { BASE, login } from './auth.js'
-import { routeKey } from './route.js'
+import { isIgnoredPath, routeKey } from './route.js'
 
 export const options = {
   scenarios: {
@@ -20,14 +20,12 @@ const SETTLE_MS = 3000
 // Flags the journey waits for before running (drift demo): e.g. WAIT_FOR_FLAG=meetup-no-debounce
 const WAIT_FOR_FLAG = __ENV.WAIT_FOR_FLAG
 
-// Excluded: posthog-js's own traffic (/i/v1/, /e/, /flags, /decide, /api/surveys) and static assets.
-const IGNORED = /^\/(i\/v\d|e\/|flags|decide|api\/surveys|static|batch|s\/|_)/
 const isAppApi = (req) => {
   const type = req.resourceType().toLowerCase() // k6 reports 'Fetch' / 'XHR'
   if (type !== 'fetch' && type !== 'xhr') return false
   const url = req.url()
   if (!url.startsWith(BASE)) return false
-  return !IGNORED.test(url.slice(BASE.length))
+  return !isIgnoredPath(url.slice(BASE.length))
 }
 
 export function setup() {

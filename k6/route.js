@@ -25,5 +25,9 @@ export function routeKey(method, url, body) {
   return method.toUpperCase() + ' ' + path + kind
 }
 
+// posthog-js's own traffic and static assets: not app API calls, so neither side counts them.
+const IGNORED = /^\/(i\/v\d|e\/|flags|decide|api\/surveys|static|batch|s\/|_)/
+export const isIgnoredPath = (path) => IGNORED.test(path)
+
 // PostHog's own metrics can't see request bodies, so the cross-check compares without #kind.
 export const withoutKind = (key) => key.split('#')[0]
