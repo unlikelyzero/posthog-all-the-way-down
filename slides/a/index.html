@@ -42,7 +42,7 @@
   /* Title build-up */
   .reveal h1.title { font-size: 92px; line-height: 1.08; }
   .reveal h1.title-small { font-size: 34px; font-weight: 800; color: var(--dim); margin: 0 0 10px; }
-  .disclaimer { position: absolute; left: 0; right: 0; top: 960px; font-size: 30px; color: var(--dim); text-align: center; }
+  .disclaimer { position: absolute; left: 0; right: 0; top: 860px; font-size: 30px; color: var(--dim); text-align: center; }
 
   /* Running gag */
   .counters { position: fixed; bottom: 24px; left: 32px; z-index: 30; display: flex; gap: 16px; }
@@ -290,36 +290,36 @@ export default async function () {
       <text x="0" y="40" font-size="40" font-weight="900" fill="#7ab8ff">k6 protocol test</text>
       <g fill="#b8b8c8" text-anchor="end">
         <text x="330" y="140">GET flag list</text>
-        <text x="330" y="260">POST /query/</text>
-        <text x="330" y="380">GET dashboard</text>
+        <text x="330" y="260">POST HogQLQuery</text>
+        <text x="330" y="380">GET dashboards</text>
         <text x="330" y="500">GET flag detail</text>
       </g>
       <g fill="#7ab8ff">
         <rect x="350" y="105" width="75" height="50"/>
-        <rect x="350" y="225" width="125" height="50"/>
-        <rect x="350" y="345" width="50" height="50"/>
-        <rect x="350" y="465" width="13" height="50"/>
+        <rect x="350" y="225" width="94" height="50"/>
+        <rect x="350" y="345" width="38" height="50"/>
+        <rect x="350" y="465" width="19" height="50"/>
       </g>
       <!-- right panel: browser journey -->
       <text x="920" y="40" font-size="40" font-weight="900" fill="#f5f5f0">Browser journey</text>
       <g fill="#b8b8c8" text-anchor="end">
         <text x="1250" y="140">GET flag list</text>
-        <text x="1250" y="260">POST /query/</text>
-        <text x="1250" y="380">GET dashboard</text>
+        <text x="1250" y="260">POST HogQLQuery</text>
+        <text x="1250" y="380">GET dashboards</text>
         <text x="1250" y="500">GET flag detail</text>
       </g>
       <g fill="#f5f5f0">
         <rect x="1270" y="105" width="75" height="50"/>
-        <rect x="1270" y="225" width="125" height="50"/>
-        <rect x="1270" y="345" width="50" height="50"/>
-        <rect x="1270" y="465" width="13" height="50"/>
+        <rect x="1270" y="225" width="94" height="50"/>
+        <rect x="1270" y="345" width="38" height="50"/>
+        <rect x="1270" y="465" width="19" height="50"/>
       </g>
       <g class="fragment" data-fragment-index="0">
         <rect x="1270" y="105" width="412" height="50" fill="#ff5c5c"/>
         <text x="1682" y="92" text-anchor="end" font-size="44" font-weight="900" fill="#ff5c5c">4 → 20–26</text>
         <text x="920" y="610" font-size="34" font-weight="800" fill="#ffd23f">one frontend change, behind one feature flag</text>
       </g>
-      <text x="0" y="610" font-size="28" fill="#b8b8c8">flag list measured; other bars illustrative</text>
+      <text x="0" y="610" font-size="28" fill="#b8b8c8">measured calls per journey run</text>
     </g>
   </svg>
   <div class="clips fragment" data-fragment-index="0">
@@ -379,7 +379,7 @@ page.on('request', (req) => {
   })
 })
       </code></pre>
-      <p class="small dim">…including which query kind each <code>/query/</code> call sends</p>
+      <p class="small dim">…every fetch and XHR the page makes, keyed by method and route template</p>
     </div>
     <div class="fragment">
       <p class="big" style="font-size:64px"><span class="ph">PostHog</span> sees it too.</p>
@@ -426,7 +426,7 @@ page.on('request', (req) => {
   <div class="demo">
     <span class="tag">LIVE DEMO</span>
     <p style="font-size:52px;font-weight:900;margin:18px 0 8px">Flip <code>meetup-no-debounce</code> in <span class="ph">PostHog</span></p>
-    <p class="fallback">Fallback: 60 s timeout per step, then play the recorded video.</p>
+    <p class="fallback">Baseline first: all four gates <span class="pass">PASS</span>. Fallback: after 60 s, <code>demo.sh</code> scores a recorded run offline.</p>
   </div>
   <div style="margin-top:40px">
 <pre class="term">$ node eval/score.js --scenario no-debounce --ref … --protocol …
@@ -435,6 +435,7 @@ Mix      M    76.2%  (>= 85.0%)  <span class="fail">FAIL</span>
 Stale    E     0.0%  (&lt;= 2.0%)  <span class="pass">PASS</span>
 Errors         0.0%  (&lt;= 1.0%)  <span class="pass">PASS</span>
   mix under by 18.7%: GET /api/projects/:id/feature_flags/
+PostHog cross-check agreement 96.2%
 RESULT: <span class="fail">FAIL</span></pre>
   </div>
   <aside class="notes">
@@ -444,7 +445,7 @@ RESULT: <span class="fail">FAIL</span></pre>
     waits until it sees the flag, then runs. Then api.js, then score.js.
     Expected: Coverage PASSES, Mix FAILS. THIS is the key point: an endpoint checklist alone would have
     said everything's fine. Every route is still covered; the volume is wrong.
-    If any step takes over 60 s: "Live demos, everybody," and play the video.
+    If any step takes over 60 s: "Live demos, everybody." demo.sh prints an offline-fallback banner and scores a recorded run instead. Run ./demo.sh prepare at T-30 min so only the browser journey runs live.
     The terminal block is a real no-debounce run on self-hosted PostHog; live numbers shift a little with the search term.
   </aside>
 </section>
