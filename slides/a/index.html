@@ -83,7 +83,7 @@
 
   svg text { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; }
 
-  /* k6 browser recording (frames from slides/record-journey.sh) */
+  /* k6 browser recording (frames from slides/record.sh) */
   .k6rec { position: relative; background: #000; border: 2px solid #333; border-radius: 16px; overflow: hidden; }
   .k6rec img { display: block; width: 100%; height: 640px; object-fit: contain; background: #111; }
   .k6rec-hud { display: flex; justify-content: space-between; padding: 14px 24px; font: 700 30px/1.2 "JetBrains Mono", Menlo, monospace; color: var(--fg); }
@@ -91,6 +91,13 @@
   .k6rec-missing { height: 640px; display: none; align-items: center; justify-content: center; color: var(--dim); font-size: 34px; }
   .k6rec.empty img { display: none; }
   .k6rec.empty .k6rec-missing { display: flex; }
+  .clips { position: absolute; left: 1440px; top: 380px; width: 420px; display: grid; gap: 14px; }
+  .clip { background: #16161f; border: 2px solid #333; border-radius: 12px; overflow: hidden; }
+  .clip img { display: block; width: 100%; height: 50px; object-fit: cover; object-position: left top; background: #fff; }
+  .clip-hud { display: flex; justify-content: space-between; padding: 6px 12px; font: 700 22px/1.2 "Inter", sans-serif; color: var(--dim); }
+  .clip-hud b { color: var(--fg); }
+  .clip.no-debounce .clip-hud b { color: var(--fail); }
+  .clip.empty img { visibility: hidden; }
 
   /* Subtitle face: pops in happy, then frowns when the "out of date" line appears */
   .face { display: inline-block; height: 0.9em; width: 0.9em; vertical-align: -0.1em; margin-left: 0.15em; transform: scale(0); }
@@ -261,10 +268,10 @@ export default async function () {
 <section>
   <div class="kicker">The reference journey</div>
   <h2 style="font-size:64px;margin-bottom:24px"><span class="k6">Grafana k6</span> driving the <span class="ph">PostHog</span> UI</h2>
-  <div class="k6rec" id="k6rec">
-    <img id="k6rec-frame" alt="k6 browser logs in to PostHog, searches feature flags for checkout, opens a flag, then opens a dashboard">
-    <div class="k6rec-missing">Recording missing: run <code>slides/record-journey.sh</code></div>
-    <div class="k6rec-hud"><span>$ k6 run k6/journey.js</span><span>API calls captured: <b id="k6rec-calls">0</b></span></div>
+  <div class="k6rec framerec" data-rec="k6-journey">
+    <img alt="k6 browser logs in to PostHog, searches feature flags for checkout, opens a flag, then opens a dashboard">
+    <div class="k6rec-missing">Recording missing: run <code>slides/record.sh</code></div>
+    <div class="k6rec-hud"><span>$ k6 run k6/journey.js</span><span>API calls captured: <b class="calls">0</b></span></div>
   </div>
   <aside class="notes">
     [~1:20, 30 s] This is k6's browser module driving the real PostHog UI: search the flags for "checkout",
@@ -307,7 +314,7 @@ export default async function () {
         <rect x="1270" y="345" width="50" height="50"/>
         <rect x="1270" y="465" width="13" height="50"/>
       </g>
-      <g class="fragment">
+      <g class="fragment" data-fragment-index="0">
         <rect x="1270" y="105" width="412" height="50" fill="#ff5c5c"/>
         <text x="1682" y="92" text-anchor="end" font-size="44" font-weight="900" fill="#ff5c5c">4 → 20–26</text>
         <text x="920" y="610" font-size="34" font-weight="800" fill="#ffd23f">one frontend change, behind one feature flag</text>
@@ -315,6 +322,16 @@ export default async function () {
       <text x="0" y="610" font-size="28" fill="#b8b8c8">flag list measured; other bars illustrative</text>
     </g>
   </svg>
+  <div class="clips fragment" data-fragment-index="0">
+    <div class="clip framerec" data-rec="search-debounced">
+      <img alt="Typing checkout into the flag search with the debounce: one list request after typing stops">
+      <div class="clip-hud"><span>debounced</span><span>list requests: <b class="calls">0</b></span></div>
+    </div>
+    <div class="clip framerec no-debounce" data-rec="search-no-debounce">
+      <img alt="Typing checkout with the debounce removed: a list request on every keystroke">
+      <div class="clip-hud"><span>debounce removed</span><span>list requests: <b class="calls">0</b></span></div>
+    </div>
+  </div>
   <p class="fragment" style="font-size:46px;font-weight:800">Load test: <span class="pass">still green.</span> Testing an app that no longer exists.</p>
   <aside class="notes">
     [~1:20 to 2:30] Left: what our k6 protocol test sends per route. Right: what a real browser sends
@@ -322,6 +339,8 @@ export default async function () {
     Click. One frontend change, behind a feature flag. The browser now hits the flag list 5 to 6.5
     times as often: 4 calls per journey become 20 to 26 (3 measured runs). The protocol test still sends 4. The load test? Didn't move. It can't: it's a script.
     Click. "Our load test is still green. It's now testing an app that no longer exists."
+    The two clips appear with the red bar: the same search box typing "checkout". Debounced, it sends
+    1 list request after you stop typing; with the debounce removed it sends 16, two per keystroke.
   </aside>
 </section>
 
@@ -583,18 +602,13 @@ RESULT: <span class="fail">FAIL</span></pre>
   }
   ['ready', 'slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(e => Reveal.on(e, updateCounters));
 
-  // Plays the recorded k6 browser frames in real time while their slide is showing, then loops.
-  (function () {
-    const dir = '../media/k6-journey/', box = document.getElementById('k6rec')
-    const img = document.getElementById('k6rec-frame'), out = document.getElementById('k6rec-calls')
+  // Frame recordings (slides/record.sh): each .framerec plays its frames in real time while its slide is
+  // showing, loops, and shows the per-frame request count in its .calls element.
+  document.querySelectorAll('.framerec').forEach((box) => {
+    const dir = `../media/${box.dataset.rec}/`
+    const img = box.querySelector('img'), out = box.querySelector('.calls')
     let frames = [], timer = null
-    fetch(dir + 'frames.json').then((r) => (r.ok ? r.json() : [])).catch(() => []).then((f) => {
-      frames = f
-      box.classList.toggle('empty', !frames.length)
-      frames.forEach((x) => { new Image().src = dir + x.f })
-      if (Reveal.getCurrentSlide()?.contains(box)) play()
-    })
-    function play() {
+    const play = () => {
       clearTimeout(timer)
       if (!frames.length) return
       const t0 = performance.now()
@@ -607,8 +621,14 @@ RESULT: <span class="fail">FAIL</span></pre>
       }
       tick()
     }
+    fetch(dir + 'frames.json').then((r) => (r.ok ? r.json() : [])).catch(() => []).then((f) => {
+      frames = f
+      box.classList.toggle('empty', !frames.length)
+      frames.forEach((x) => { new Image().src = dir + x.f })
+      if (Reveal.getCurrentSlide()?.contains(box)) play()
+    })
     Reveal.on('slidechanged', (e) => (e.currentSlide.contains(box) ? play() : clearTimeout(timer)))
-  })();
+  })
 </script>
 </body>
 </html>

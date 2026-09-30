@@ -83,7 +83,7 @@ export default async function (auth) {
 }
 
 // The drift switch is a PostHog flag in project 1: reload until the page sees it, or give up at 60 s.
-async function waitForFlag(page, key) {
+export async function waitForFlag(page, key) {
   const deadline = Date.now() + 60000
   while (Date.now() < deadline) {
     await page.evaluate(() => window.posthog?.reloadFeatureFlags())
@@ -97,13 +97,14 @@ async function waitForFlag(page, key) {
 }
 
 // Screenshots as fast as the browser allows; each frame logs its time and the calls captured so far.
-function record(page, calls) {
+// clip (optional) crops every frame to one region of the page.
+export function record(page, calls, clip) {
   let on = true
   const start = Date.now()
   const loop = (async () => {
     for (let n = 1; on; n++) {
       const file = `f-${String(n).padStart(4, '0')}.jpg`
-      await page.screenshot({ path: `${FRAMES_DIR}/${file}`, type: 'jpeg', quality: 70 })
+      await page.screenshot({ path: `${FRAMES_DIR}/${file}`, type: 'jpeg', quality: 70, ...(clip ? { clip } : {}) })
       console.log(`FRAME ${file} ${Date.now() - start} ${calls()}`)
     }
   })()
