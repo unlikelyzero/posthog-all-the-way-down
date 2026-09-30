@@ -13,6 +13,9 @@ then repairs the test, and the agent is evaluated too.
 
 - [DESIGN.md](DESIGN.md): the build spec. Start with section 9, the verification checklist.
 - [TALK.md](TALK.md): the 25-minute talk outline.
+- [slides/](slides/): three draft reveal.js decks (A recursion, B data-forward, C one idea per slide).
+  Serve with `python3 -m http.server -d slides 8766` and open http://127.0.0.1:8766/.
+  Mascot images live in `slides/mascots/`, which is gitignored until PostHog and Grafana approve their use; the counters fall back to emoji without them.
 
 Not affiliated with PostHog or Grafana Labs.
 
