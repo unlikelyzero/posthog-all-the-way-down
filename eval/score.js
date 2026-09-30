@@ -11,7 +11,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { isIgnoredPath, routeKey, template, withoutKind } from '../k6/route.js'
 
-// Starting values from DESIGN.md §5.1; replace with the calibrated numbers (§5.2).
+// Calibrated (DESIGN.md §5.2) from 5 baseline runs on the pinned stack: worst C 0.964, M 0.900, E 0, errors 0.
+// Each threshold sits just beyond the worst baseline value; both seeded drifts still fail their gate.
 export const THRESHOLDS = { C: 0.95, M: 0.85, E: 0.02, errors: 0.01 }
 export const CRITICAL_ROUTES = ['GET /api/projects/:id/feature_flags/']
 

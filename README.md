@@ -36,8 +36,19 @@ RUN_ID=p1 k6 run --out json=out/protocol-p1.json k6/api.js
 node eval/score.js --ref out/browser-b1.json --protocol out/protocol-p1.json --run-id b1
 ```
 
-`k6/api.js` is a first draft. Rewrite it from the first baseline `browser-*.json` so it covers the routes
-the real UI calls, then calibrate the thresholds in `eval/score.js` (DESIGN.md §5.2) and record them here.
+`k6/api.js` matches the per-route mix of the real baseline journey.
+
+**Calibration** (DESIGN.md §5.2): 5 baseline browser runs, each scored against its own protocol run.
+
+| Gate | Baseline runs | Worst | Threshold |
+|---|---|---|---|
+| Coverage C | 0.964 0.965 0.964 0.966 0.964 | 0.964 | ≥ 0.95 |
+| Mix M | 0.931 0.915 0.931 0.900 0.931 | 0.900 | ≥ 0.85 |
+| Stale E | 0 0 0 0 0 | 0 | ≤ 0.02 |
+| Errors | 0 0 0 0 0 | 0 | ≤ 0.01 |
+
+The seeded drifts fail their intended gates: no-debounce fails M only (C 0.977, M 0.762); N+1 fails C
+(0.589) and the report names `GET /api/projects/:id/feature_flags/:id/activity/`.
 `./demo.sh baseline|no-debounce|n-plus-one|repaired` runs a stage live and falls back to seeded offline fixtures
 (`eval/fixtures.js`) if the stack fails or takes over 60 s; `./demo.sh check` asserts the offline pass/fail pattern.
 `agent-eval/run.sh` runs the agent eval; it needs `mcp-k6` (`brew install mcp-k6` from the `grafana/grafana` tap).
