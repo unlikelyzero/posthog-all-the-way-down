@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/monokai.css">
+<link rel="stylesheet" href="../vendor/reveal.js/dist/reveal.css">
+<link rel="stylesheet" href="../vendor/reveal.js/dist/theme/black.css">
+<link rel="stylesheet" href="../vendor/reveal.js/plugin/highlight/monokai.css">
 <style>
   :root {
     --bg: #0a0a0f;
@@ -79,8 +79,7 @@
   .reveal table th, .reveal table td { border-bottom: 2px solid #333; padding: 14px 18px; vertical-align: top; text-align: left; }
   .reveal table th { color: var(--dim); font-weight: 800; }
 
-  .qr { width: 300px; height: 300px; border: 6px dashed var(--dim); border-radius: 20px; display: grid; place-items: center;
-    text-align: center; font-size: 28px; color: var(--dim); }
+  .qr { width: 300px; height: 300px; border-radius: 12px; }
 
   svg text { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; }
 </style>
@@ -262,13 +261,13 @@
   <div class="cols">
     <div>
       <pre><code class="language-javascript" data-trim>
-// k6 browser: the reference journey
+// k6/journey.js: the reference journey
 page.on('request', (req) => {
-  apiCalls.add(1, {
+  if (isAppApi(req)) apiCalls.add(1, {
     route: routeKey(req.method(),
       req.url(), req.postData()),
-  });
-});
+  })
+})
       </code></pre>
       <p class="small dim">…including which query kind each <code>/query/</code> call sends</p>
     </div>
@@ -293,10 +292,11 @@ page.on('request', (req) => {
   <p class="kicker">The idea, part 2</p>
   <h2>Score the protocol test against it</h2>
   <table>
-    <tr><th>Gate</th><th>Question</th><th>Catches</th></tr>
-    <tr><td><strong>Coverage</strong></td><td>Do we hit the routes the browser hits?</td><td>new routes</td></tr>
-    <tr><td><strong>Mix</strong></td><td>In the same proportions?</td><td>volume shifts</td></tr>
-    <tr><td><strong>Stale</strong></td><td>Are we calling routes that are gone?</td><td>removed routes</td></tr>
+    <tr><th>Gate</th><th>Question</th><th>Pass if</th><th>Catches</th></tr>
+    <tr><td><strong>Coverage</strong></td><td>Do we hit the routes the browser hits?</td><td>≥ 0.95</td><td>new routes</td></tr>
+    <tr><td><strong>Mix</strong></td><td>In the same proportions?</td><td>≥ 0.85</td><td>volume shifts</td></tr>
+    <tr><td><strong>Stale</strong></td><td>Are we calling routes that are gone?</td><td>≤ 0.02</td><td>removed routes</td></tr>
+    <tr><td><strong>Errors</strong></td><td>Is the test itself failing?</td><td>≤ 0.01</td><td>a broken test</td></tr>
   </table>
   <p style="margin-top:36px">Independent pass/fail. Thresholds <strong>calibrated from 5 baseline runs</strong>, not vibes.</p>
   <p class="fragment" style="font-size:44px;font-weight:800">"This is a journey contract, not a model of your whole user population."</p>
@@ -318,13 +318,14 @@ page.on('request', (req) => {
     <p class="fallback">Fallback: 60 s timeout per step, then play the recorded video.</p>
   </div>
   <div class="mock" style="margin-top:40px">
-<pre class="term">score.js  scenario=no-debounce  reference=3 browser runs
-  Coverage  C = 0.97   (≥ 0.95)   <span class="pass">PASS</span>
-  Mix       M = 0.46   (≥ 0.85)   <span class="fail">FAIL</span>
-  Stale     E = 0.00   (≤ 0.02)   <span class="pass">PASS</span>
-  top drift: GET flag list   browser 61%  protocol 14%
-  <span style="color:var(--hot)">PostHog</span> cross-check: agrees
-exit 1</pre>
+<pre class="term">$ node eval/score.js --scenario no-debounce --ref … --protocol …
+Coverage C   100.0%  (>= 95.0%)  <span class="pass">PASS</span>
+Mix      M    53.0%  (>= 85.0%)  <span class="fail">FAIL</span>
+Stale    E     0.0%  (&lt;= 2.0%)  <span class="pass">PASS</span>
+Errors         0.0%  (&lt;= 1.0%)  <span class="pass">PASS</span>
+  mix under by 47.0%: GET /api/projects/:id/feature_flags/
+<span style="color:var(--hot)">PostHog</span> cross-check agreement 97.0%
+RESULT: <span class="fail">FAIL</span></pre>
   </div>
   <aside class="notes">
     [7:00 to 11:00] Step 1, baseline (1 min): show the baseline report, all gates green, PostHog
@@ -357,7 +358,7 @@ exit 1</pre>
   </div>
   <aside class="notes">
     [11:00 to 14:00] Step 3 (30 s, recorded): flip meetup-n-plus-one. The UI now fetches every flag's
-    detail endpoint, one request per row. Coverage fails and the report names the new route.
+    activity endpoint, one request per row. Coverage fails and the report names the new route.
     Step 4 (2.5 min): recorded agent run, sped up four times. Claude with the k6 MCP: pulls
     get_documentation, edits api.js, validate_script catches a wrong k6 API before anything runs,
     then run_script. Then LIVE: validate_script, run_script and score.js on the repaired test. These
@@ -452,12 +453,12 @@ exit 1</pre>
       <p style="margin:0"><strong>Eval results dashboard</strong> (live in <span class="ph">PostHog</span>, event <code>meetup_eval_result</code>)</p>
       <p class="dim small" style="margin:10px 0 0">Switch to the browser tab. No screenshot in the deck.</p>
     </div>
-    <div class="qr">QR code<br>posthog-all-the-way-down<br>(add before talk)</div>
+    <svg class="qr" width="300" height="300" role="img" aria-label="QR code: github.com/unlikelyzero/posthog-all-the-way-down" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h37v37H0z"/><path stroke="#000000" d="M2 2.5h7m2 0h3m1 0h2m1 0h1m1 0h4m1 0h1m2 0h7M2 3.5h1m5 0h1m5 0h5m4 0h2m3 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m1 0h2m1 0h4m4 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m4 0h4m1 0h1m2 0h1m3 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h3m1 0h1m2 0h1m1 0h5m1 0h1m2 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h2m1 0h1m1 0h1m1 0h2m3 0h1m5 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h3m1 0h1m2 0h1m2 0h1m1 0h2M2 10.5h1m1 0h5m3 0h6m1 0h1m1 0h1m3 0h1m2 0h5M5 11.5h1m1 0h1m2 0h1m2 0h1m4 0h5m2 0h1m2 0h2m1 0h2m1 0h1M2 12.5h4m2 0h6m3 0h1m1 0h1m2 0h2m2 0h2m2 0h1m1 0h2M3 13.5h1m3 0h1m2 0h1m2 0h2m1 0h1m5 0h2m2 0h3m1 0h3M2 14.5h2m1 0h1m1 0h2m1 0h1m8 0h1m4 0h3m2 0h3M3 15.5h3m1 0h1m1 0h4m3 0h4m1 0h1m3 0h2m1 0h1m2 0h1m1 0h2M2 16.5h1m1 0h2m1 0h3m6 0h1m3 0h1m1 0h1m1 0h1m1 0h3m1 0h2m1 0h1M2 17.5h5m4 0h4m1 0h1m1 0h1m4 0h1m3 0h2m1 0h3M4 18.5h6m1 0h1m1 0h3m2 0h2m1 0h2m1 0h4m1 0h3m2 0h1M5 19.5h3m3 0h2m3 0h1m1 0h1m1 0h4m1 0h1m2 0h2m1 0h4M2 20.5h2m1 0h2m1 0h1m4 0h1m1 0h5m2 0h3m1 0h5m1 0h2M2 21.5h1m1 0h2m3 0h1m1 0h1m5 0h1m3 0h4m2 0h1m1 0h6M3 22.5h1m2 0h3m3 0h5m1 0h2m1 0h2m3 0h2m1 0h3m1 0h2M2 23.5h1m3 0h1m2 0h1m1 0h7m1 0h5m1 0h1m2 0h1m3 0h1m1 0h1M2 24.5h1m2 0h2m1 0h2m1 0h1m1 0h1m3 0h4m1 0h1m3 0h2m1 0h1m1 0h1m1 0h1M2 25.5h1m1 0h2m6 0h1m3 0h2m5 0h2m2 0h6M2 26.5h1m1 0h1m3 0h2m7 0h3m4 0h8m2 0h1M10 27.5h1m1 0h2m1 0h2m1 0h4m3 0h2m3 0h1m1 0h1m1 0h1M2 28.5h7m2 0h5m1 0h1m1 0h1m2 0h5m1 0h1m1 0h1m1 0h1M2 29.5h1m5 0h1m1 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h5m3 0h5M2 30.5h1m1 0h3m1 0h1m1 0h2m4 0h1m3 0h2m2 0h1m1 0h6m1 0h2M2 31.5h1m1 0h3m1 0h1m1 0h2m4 0h3m1 0h3m1 0h4m2 0h5M2 32.5h1m1 0h3m1 0h1m1 0h4m1 0h1m6 0h1m1 0h1m3 0h2m2 0h1M2 33.5h1m5 0h1m2 0h5m2 0h1m2 0h4m5 0h3M2 34.5h7m1 0h3m6 0h1m4 0h4m1 0h1m3 0h1"/></svg>
   </div>
   <p style="margin-top:40px">Questions? <span class="dim">Not affiliated with PostHog.</span></p>
   <aside class="notes">
     [20:00] "And of course, the eval results live in... PostHog." Switch to the dashboard tab for
-    the final loop of the joke, then back. Point at the QR code: repo is posthog-all-the-way-down.
+    the final loop of the joke, then back. Point at the QR code: github.com/unlikelyzero/posthog-all-the-way-down (the repo must be public by then or the QR 404s).
     Glance at the counter for the last laugh. Then Q&A until 25:00.
   </aside>
 </section>
@@ -465,9 +466,9 @@ exit 1</pre>
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/notes/notes.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/highlight.js"></script>
+<script src="../vendor/reveal.js/dist/reveal.js"></script>
+<script src="../vendor/reveal.js/plugin/notes/notes.js"></script>
+<script src="../vendor/reveal.js/plugin/highlight/highlight.js"></script>
 <script>
   Reveal.initialize({
     width: 1920, height: 1080, margin: 0.04,
