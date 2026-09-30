@@ -10,6 +10,7 @@ cd "$(dirname "$0")/.."
 [ -f out/local.env ] && source out/local.env
 
 TRIALS=${1:-5}
+MODEL=${MODEL:-claude-sonnet-5-5} # pinned: claude -p otherwise uses whatever the CLI defaults to
 HOST=${BASE_URL:-http://localhost}
 OUT=out/agent-eval
 RESULTS=agent-eval/results.jsonl
@@ -52,7 +53,7 @@ realism() {
   grep -q 'check(' "$f" || fails+=(no-check)
   grep -Eq '/[0-9]{2,}/|[0-9a-f]{8}-[0-9a-f]{4}-' "$f" && fails+=(hard-coded-ids)
   grep -Eq "=[[:space:]]*\[[[:space:]]*['\"]" "$f" || fails+=(no-term-array)
-  printf '%s\n' "${fails[@]}" | node -e "console.log(JSON.stringify(require('fs').readFileSync(0,'utf8').split('\n').filter(Boolean)))"
+  printf '%s\n' "${fails[@]+"${fails[@]}"}" | node -e "console.log(JSON.stringify(require('fs').readFileSync(0,'utf8').split('\n').filter(Boolean)))"
 }
 
 # Ordered MCP tool calls, turns and cost from claude's stream-json transcript.
@@ -92,7 +93,7 @@ $report
 To re-score your fix against the same browser references: run k6/api.js with
 \`k6 run --out json=$OUT/$tag-check.json k6/api.js\`, then
 \`node eval/score.js ${train[*]} --protocol $OUT/$tag-check.json\`." \
-        --mcp-config "$mcp" --strict-mcp-config --output-format stream-json --verbose \
+        --model "$MODEL" --mcp-config "$mcp" --strict-mcp-config --output-format stream-json --verbose \
         --permission-mode acceptEdits --allowedTools 'Read' 'Edit' 'Bash(k6:*)' 'Bash(node eval/score.js:*)' 'mcp__k6__*' \
         > "$OUT/$tag.transcript.jsonl" || true
 
@@ -100,11 +101,11 @@ To re-score your fix against the same browser references: run k6/api.js with
       RUN_ID="$tag-p1" k6 run -q --out "json=$OUT/$tag-p1.json" k6/api.js > /dev/null || true
       node eval/score.js "${heldout[@]}" --protocol "$OUT/$tag-p1.json" --scenario "$tag" --json "$OUT/$tag.score.json" || true
 
-      row=$(node -e "
+      row=$(MODEL="$MODEL" node -e "
         const [task, condition, trial, scoreFile, realism, summary] = process.argv.slice(1);
         let s = {}; try { s = JSON.parse(require('fs').readFileSync(scoreFile)) } catch {}
         const realismFails = JSON.parse(realism);
-        console.log(JSON.stringify({ task, condition, trial: +trial, pass: !!s.pass && realismFails.length === 0,
+        console.log(JSON.stringify({ task, condition, trial: +trial, model: process.env.MODEL, pass: !!s.pass && realismFails.length === 0,
           gates: s.gates || null, C: s.C, M: s.M, E: s.E, errors: s.errors, realism_fails: realismFails, ...JSON.parse(summary) }))
       " "$task" "$condition" "$trial" "$OUT/$tag.score.json" "$(realism)" "$(transcript_summary "$OUT/$tag.transcript.jsonl")")
       echo "$row" >> "$RESULTS"
