@@ -77,6 +77,9 @@
   .reveal table th { color: var(--dim); font-weight: 800; }
 
   .qr { width: 300px; height: 300px; border-radius: 12px; }
+  .cols.primer { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; }
+  .cols.primer p { font-size: 32px; }
+  .cols.primer pre { font-size: 24px; }
 
   svg text { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; }
 
@@ -192,6 +195,51 @@
     clicks through it. PostHog records that traffic about itself. We check a k6 protocol test against it.
     PostHog feature flags break the app. Claude with the k6 MCP repairs the test. The eval results go
     back into PostHog. Click: "Yes, every arrow is real." Advance.
+  </aside>
+</section>
+
+<!-- 2b · What Grafana k6 is -->
+<section>
+  <div class="kicker">Thirty-second primer</div>
+  <h2>What is <span class="k6">Grafana k6</span>?</h2>
+  <p style="font-size:40px;margin:0 0 36px">Open-source load testing. Tests are JavaScript; the engine is Go. Each <b>virtual user (VU)</b> runs your script in a loop.</p>
+  <div class="cols primer">
+    <div class="card">
+      <p style="margin:0 0 16px"><b class="k6">Protocol VUs</b>: raw HTTP, cheap, thousands per machine</p>
+      <pre><code class="language-javascript" data-trim>
+import http from 'k6/http'
+import { check, sleep } from 'k6'
+
+export const options = { vus: 50, duration: '1m' }
+
+export default function () {
+  const res = http.get(`${BASE}/api/feature_flags/`)
+  check(res, { ok: (r) => r.status === 200 })
+  sleep(1)
+}
+      </code></pre>
+    </div>
+    <div class="card">
+      <p style="margin:0 0 16px"><b class="k6">Browser VUs</b>: real Chromium, real clicks, expensive</p>
+      <pre><code class="language-javascript" data-trim>
+import { browser } from 'k6/browser'
+
+export default async function () {
+  const page = await browser.newPage()
+  await page.goto(`${BASE}/feature_flags`)
+  await page.locator('input').type('checkout')
+  await page.close()
+}
+      </code></pre>
+    </div>
+  </div>
+  <p class="fragment" style="font-size:38px;margin-top:36px">Load tests run mostly protocol VUs. So someone has to <b>write down</b> what the browser sends.</p>
+  <aside class="notes">
+    [~1:00, 30 s] For anyone who hasn't used it: k6 is Grafana's open-source load tester. You write the test
+    in JavaScript and a Go engine runs it, each virtual user looping over your default function. Two kinds
+    of VU. Protocol VUs send raw HTTP: cheap, you can run thousands. Browser VUs drive a real Chromium:
+    faithful, but expensive. Click: so real load tests are mostly protocol VUs, which means someone
+    hand-wrote the list of requests the browser makes. Hold that thought.
   </aside>
 </section>
 
