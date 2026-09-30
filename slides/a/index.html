@@ -52,7 +52,7 @@
     color: var(--bg); padding: 8px 18px 8px 8px; border-radius: 10px;
     transition: transform .15s;
   }
-  .counter img { height: 60px; width: auto; }
+  .counter img { height: 48px; width: auto; } /* same box as the emoji fallback below */
   .counter .mascot { height: 48px; width: 48px; font-size: 40px; line-height: 48px; text-align: center; }
   #ph-counter { background: var(--hot); }
   #gf-counter { background: var(--k6); }
@@ -79,6 +79,15 @@
   .qr { width: 300px; height: 300px; border-radius: 12px; }
 
   svg text { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; }
+
+  /* k6 browser recording (frames from slides/record-journey.sh) */
+  .k6rec { position: relative; background: #000; border: 2px solid #333; border-radius: 16px; overflow: hidden; }
+  .k6rec img { display: block; width: 100%; height: 640px; object-fit: contain; background: #111; }
+  .k6rec-hud { display: flex; justify-content: space-between; padding: 14px 24px; font: 700 30px/1.2 "JetBrains Mono", Menlo, monospace; color: var(--fg); }
+  .k6rec-hud b { color: var(--hot); }
+  .k6rec-missing { height: 640px; display: none; align-items: center; justify-content: center; color: var(--dim); font-size: 34px; }
+  .k6rec.empty img { display: none; }
+  .k6rec.empty .k6rec-missing { display: flex; }
 
   /* Subtitle face: pops in happy, then frowns when the "out of date" line appears */
   .face { display: inline-block; height: 0.9em; width: 0.9em; vertical-align: -0.1em; margin-left: 0.15em; transform: scale(0); }
@@ -197,6 +206,22 @@
   <aside class="notes">
     [~1:10, 10 s] Read it; the smiley pops in. Click: "But it's now out of date." The smiley turns into a frown. Now the serious part. Straight into the hook;
     the hook budget is tight because the title ate some of it.
+  </aside>
+</section>
+
+<!-- 3b · k6 browser driving PostHog -->
+<section>
+  <div class="kicker">The reference journey</div>
+  <h2 style="font-size:64px;margin-bottom:24px"><span class="k6">Grafana k6</span> driving the <span class="ph">PostHog</span> UI</h2>
+  <div class="k6rec" id="k6rec">
+    <img id="k6rec-frame" alt="k6 browser logs in to PostHog, searches feature flags for checkout, opens a flag, then opens a dashboard">
+    <div class="k6rec-missing">Recording missing: run <code>slides/record-journey.sh</code></div>
+    <div class="k6rec-hud"><span>$ k6 run k6/journey.js</span><span>API calls captured: <b id="k6rec-calls">0</b></span></div>
+  </div>
+  <aside class="notes">
+    [~1:20, 30 s] This is k6's browser module driving the real PostHog UI: search the flags for "checkout",
+    open a flag, open a dashboard. Every API call the page makes gets counted by route. That count is the
+    reference the protocol test gets scored against. Recorded from the demo stack; the live run is the same script.
   </aside>
 </section>
 
@@ -528,6 +553,33 @@ RESULT: <span class="fail">FAIL</span></pre>
     }
   }
   ['ready', 'slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(e => Reveal.on(e, updateCounters));
+
+  // Plays the recorded k6 browser frames in real time while their slide is showing, then loops.
+  (function () {
+    const dir = '../media/k6-journey/', box = document.getElementById('k6rec')
+    const img = document.getElementById('k6rec-frame'), out = document.getElementById('k6rec-calls')
+    let frames = [], timer = null
+    fetch(dir + 'frames.json').then((r) => (r.ok ? r.json() : [])).catch(() => []).then((f) => {
+      frames = f
+      box.classList.toggle('empty', !frames.length)
+      frames.forEach((x) => { new Image().src = dir + x.f })
+      if (Reveal.getCurrentSlide()?.contains(box)) play()
+    })
+    function play() {
+      clearTimeout(timer)
+      if (!frames.length) return
+      const t0 = performance.now()
+      let i = 0
+      const tick = () => {
+        while (i < frames.length - 1 && frames[i + 1].t <= performance.now() - t0) i++
+        img.src = dir + frames[i].f
+        out.textContent = frames[i].calls
+        timer = i < frames.length - 1 ? setTimeout(tick, 40) : setTimeout(play, 3000)
+      }
+      tick()
+    }
+    Reveal.on('slidechanged', (e) => (e.currentSlide.contains(box) ? play() : clearTimeout(timer)))
+  })();
 </script>
 </body>
 </html>
