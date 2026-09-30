@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Agent eval: tasks × conditions × trials → agent-eval/results.jsonl. Run before the talk, not on stage.
-#   BASE_URL=... PH_EMAIL=... PH_PASSWORD=... POSTHOG_PERSONAL_API_KEY=... agent-eval/run.sh [trials]
+#   agent-eval/run.sh [trials]            (reads out/local.env from posthog/seed.sh)
+#   TASK=repair-no-debounce CONDITION=with-k6-mcp agent-eval/run.sh 1   # a single pilot trial
 # Needs: k6, node, claude, and a running patched PostHog with both meetup flags created in project 1.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Local test credentials written by posthog/seed.sh.
+# shellcheck disable=SC1091
+[ -f out/local.env ] && source out/local.env
 
 TRIALS=${1:-5}
-HOST=${BASE_URL:-http://localhost:8000}
+HOST=${BASE_URL:-http://localhost}
 OUT=out/agent-eval
 RESULTS=agent-eval/results.jsonl
 TRAIN_TERMS=(checkout billing onboarding)
@@ -14,6 +18,8 @@ HELDOUT_TERMS=(beta pricing search)
 ALL_FLAGS=(meetup-no-debounce meetup-n-plus-one)
 mkdir -p "$OUT"
 echo '{"mcpServers":{}}' > "$OUT/empty-mcp.json"
+# k6 MCP only: .mcp.json also loads PostHog's MCP, which would muddy the with/without comparison.
+echo '{"mcpServers":{"k6":{"command":"mcp-k6"}}}' > "$OUT/k6-mcp.json"
 
 api() { curl -fsS -H "Authorization: Bearer $POSTHOG_PERSONAL_API_KEY" -H 'Content-Type: application/json' "$@"; }
 
@@ -63,8 +69,10 @@ transcript_summary() {
 git show HEAD:k6/api.js > "$OUT/api.baseline.js"
 
 while IFS="|" read -r -u 3 task flags intent; do
+  [ -n "${TASK:-}" ] && [ "$task" != "$TASK" ] && continue
   for condition in with-k6-mcp no-mcp; do
-    mcp=.mcp.json; [ "$condition" = no-mcp ] && mcp="$OUT/empty-mcp.json"
+    [ -n "${CONDITION:-}" ] && [ "$condition" != "$CONDITION" ] && continue
+    mcp="$OUT/k6-mcp.json"; [ "$condition" = no-mcp ] && mcp="$OUT/empty-mcp.json"
     for trial in $(seq 1 "$TRIALS"); do
       tag="$task-$condition-$trial"
       echo "== $tag"
@@ -79,8 +87,13 @@ while IFS="|" read -r -u 3 task flags intent; do
 
       claude -p "$intent
 
-$report" --mcp-config "$mcp" --strict-mcp-config --output-format stream-json --verbose \
-        --permission-mode acceptEdits --allowedTools 'Read' 'Edit' 'Bash(k6:*)' 'mcp__k6__*' \
+$report
+
+To re-score your fix against the same browser references: run k6/api.js with
+\`k6 run --out json=$OUT/$tag-check.json k6/api.js\`, then
+\`node eval/score.js ${train[*]} --protocol $OUT/$tag-check.json\`." \
+        --mcp-config "$mcp" --strict-mcp-config --output-format stream-json --verbose \
+        --permission-mode acceptEdits --allowedTools 'Read' 'Edit' 'Bash(k6:*)' 'Bash(node eval/score.js:*)' 'mcp__k6__*' \
         > "$OUT/$tag.transcript.jsonl" || true
 
       read -ra heldout <<< "$(references "$tag-heldout" "${on[0]}" "${HELDOUT_TERMS[@]}")"
