@@ -43,6 +43,12 @@ export default async function (auth) {
     { name: 'posthog_csrftoken', value: auth.csrf, domain: host, path: '/' },
   ])
   await context.addInitScript(`localStorage.setItem('meetup_run_id', ${JSON.stringify(RUN_ID)})`)
+  // Recordings only: hide the "running without TLS" bar (#bottom-notice, posthog/templates/overlays.html),
+  // which the plain-HTTP demo stack shows on every page and which would dominate the slide.
+  if (FRAMES_DIR) {
+    await context.addInitScript(`new MutationObserver(() => document.getElementById('bottom-notice')?.remove())
+      .observe(document, { childList: true, subtree: true })`)
+  }
   const page = await context.newPage()
   let calls = 0
   page.on('request', (req) => {

@@ -270,6 +270,7 @@ export default async function () {
     [~1:20, 30 s] This is k6's browser module driving the real PostHog UI: search the flags for "checkout",
     open a flag, open a dashboard. Every API call the page makes gets counted by route. That count is the
     reference the protocol test gets scored against. Recorded from the demo stack; the live run is the same script.
+    The recording hides PostHog's "running without TLS" bar, since the demo stack serves plain HTTP on localhost.
   </aside>
 </section>
 
