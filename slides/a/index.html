@@ -496,28 +496,6 @@ RESULT: <span class="fail">FAIL</span></pre>
   </aside>
 </section>
 
-<!-- 12 · Limits + "doesn't X already do this?" -->
-<section>
-  <h2>"Doesn't something already do this?"</h2>
-  <table>
-    <tr><td>k6 Studio regenerates from a recording</td><td>Yes. This tells you <strong>when</strong>.</td></tr>
-    <tr><td>Just run browser VUs at load</td><td>Grafana: mostly protocol VUs, a few browser VUs. This keeps the protocol side honest.</td></tr>
-    <tr><td>Faro / Beyla / OTel instead?</td><td>Any real-user telemetry works. The method is the point.</td></tr>
-    <tr><td>Replay / Alerts / self-driving</td><td>One session / "traffic changed" / fixes product code, not tests.</td></tr>
-  </table>
-  <p class="small" style="margin-top:28px"><strong>Limits:</strong> no body diff beyond query kind · no latency fidelity · one journey · <span class="ph">PostHog</span> metrics is alpha</p>
-  <aside class="notes">
-    [17:00 to 19:00] Pre-empt the questions. k6 Studio can regenerate the test from a recording: yes,
-    this tells you when to. Browser VUs at load: Grafana's own guidance is mostly protocol VUs plus a
-    few browser VUs for cost; this keeps the protocol side honest. Faro, Beyla, OTel: any real-user
-    telemetry works, the comparison is the point. Session replay's network tab is one session at a time;
-    alerts tell you traffic changed, not which part of the test is stale; self-driving fixes product
-    code, not test code.
-    Limits: request bodies beyond query kind aren't compared, latency fidelity isn't measured, one
-    journey, and PostHog's metrics product is alpha. If long, fold this slide into Q&A (saves 2 min).
-  </aside>
-</section>
-
 <!-- 13 · Takeaways + thesis -->
 <section>
   <ol style="font-size:46px;font-weight:700">
@@ -533,6 +511,8 @@ RESULT: <span class="fail">FAIL</span></pre>
     [19:00 to 20:00] Three takeaways, one click each. Then the thesis, read slowly, no joke:
     "A protocol load test is a cached model of browser behavior. Keep comparing it with observed
     browser traffic, or a green test may be generating yesterday's load."
+    If asked about limits: request bodies beyond the query kind aren't compared, latency fidelity isn't
+    measured, it's one journey, and PostHog's metrics product is alpha.
   </aside>
 </section>
 
