@@ -1,0 +1,3 @@
+out/
+posthog/dist/
+agent-eval/results.jsonl

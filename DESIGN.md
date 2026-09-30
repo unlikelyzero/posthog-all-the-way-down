@@ -6,8 +6,10 @@
 **Thesis:** A protocol load test is a cached model of browser behavior. Keep comparing it
 with observed browser traffic, or a green test may be generating yesterday's load.
 
-**Status:** designed, not built. Nothing has been run against a live PostHog. Every
-unverified assumption is listed in [§9 Verification checklist](#9-verification-checklist-do-first).
+**Status:** code written, not yet run against a live PostHog. Pinned to PostHog
+`54c04a0f494dc0821b87e95c19dcade17a633591` (node image `6bcb56fb6e5ff2200852f2080339050d32b98d20`,
+the last `nodejs/` change at or before it). §9 items 1, 6 and 7 are verified; the rest need the
+running stack. Every unverified assumption is listed in [§9 Verification checklist](#9-verification-checklist-do-first).
 Do that section first; it decides whether the rest works as written.
 
 ---
@@ -108,7 +110,7 @@ services:
     extends: { file: docker-compose.base.yml, service: ingestion-logs }
     image: ${REGISTRY_URL}-node:${POSTHOG_NODE_TAG}
     environment:
-      PLUGIN_SERVER_MODE: 'ingestion-metrics'   # VERIFY exact value, see §9
+      PLUGIN_SERVER_MODE: 'ingestion-metrics'   # verified, §9 #1
     depends_on: [db, redis7, kafka]
 ```
 Only the cross-check needs the metrics pipeline. If it can't be made to work, drop the
@@ -120,8 +122,8 @@ All changes are in MIT-licensed paths (`frontend/src/…`, not `ee/`).
 | Change | File | Behavior |
 |---|---|---|
 | Flag `meetup-no-debounce` | `frontend/src/scenes/feature-flags/featureFlagsLogic.ts` (~L731-736) | When the flag is on, skip `await breakpoint(300)`. Every keystroke calls `loadFeatureFlags()`. |
-| Flag `meetup-n-plus-one` | same file, `loadFeatureFlagsSuccess` | When the flag is on, `GET` each result's detail endpoint (`…/feature_flags/:id/`), one request per row. |
-| Run-id attribute | `frontend/src/loadPostHogJS.tsx` (`metrics:` option, ~L63) | Add `meetup.run_id` from `localStorage.meetup_run_id` to each network metric, via the network-metrics `attributes` hook (posthog-js `network-metrics.ts:112`). **VERIFY** the config shape (§9). |
+| Flag `meetup-n-plus-one` | same file, `loadFeatureFlagsSuccess` | When the flag is on, `GET` each result's activity endpoint (`…/feature_flags/:id/activity/`), one request per row. The baseline never calls this route, so coverage fails; the detail route would only shift the mix. |
+| Run-id attribute | `frontend/src/loadPostHogJS.tsx` (`metrics:` option, ~L63) | Add `meetup.run_id` from `localStorage.meetup_run_id` to each network metric, via the network-metrics `attributes` hook (posthog-js `network-metrics.ts:112`): `metrics.network = { attributes: (request, response) => ({…}) }`, verified §9 #6. |
 | Marker | any loaded module | `console.debug('MEETUP_PATCH_V1')` |
 
 Read flags with literal keys through the existing feature-flag logic. They don't need to be
@@ -289,7 +291,7 @@ For each (task, condition, trial):
 
 Also send each row to PostHog as a `meetup_agent_trial` event.
 
-Braintrust (PostHog's own eval platform) is **optional**. The JSONL maps one-to-one onto a
+Braintrust (a third-party eval platform, the one PostHog's MCP evals use) is **optional**. The JSONL maps one-to-one onto a
 Braintrust experiment if you want the same UI PostHog uses. It isn't required for the talk.
 
 ### 6.4 Reporting (honest statistics)
@@ -340,15 +342,15 @@ Docker 16 GB, close everything else, and rehearse under that limit while watchin
 
 Each item says how to confirm it and what to do if it fails.
 
-| # | Assumption | How to verify | If false |
-|---|---|---|---|
-| 1 | `PLUGIN_SERVER_MODE` value for the metrics ingestion server | Read `nodejs/src/servers/ingestion-metrics-server.ts` and the mode switch in `nodejs/src` at the pinned SHA | Use the correct value. If there's no such mode in the image, drop the cross-check. |
+| # | Assumption | How to verify | If false | Result |
+|---|---|---|---|---|
+| 1 | `PLUGIN_SERVER_MODE` value for the metrics ingestion server | Read `nodejs/src/servers/ingestion-metrics-server.ts` and the mode switch in `nodejs/src` at the pinned SHA | Use the correct value. If there's no such mode in the image, drop the cross-check. | **Verified:** `ingestion-metrics` (`nodejs/src/common/config.ts`, `PluginServerMode.ingestion_metrics`). It also reads `METRICS_REDIS_HOST`. |
 | 2 | Metrics reach `posthog.metrics` on self-hosted | Send one sentinel metric; query it within 20 s | Drop the cross-check. The demo still works. |
 | 3 | `collectstatic` overlay serves the patched JS | `curl` the page and its JS for `MEETUP_PATCH_V1` | Build the full image from the patched source instead (slow but reliable). |
 | 4 | Self-capture works outside dev mode | Events and `$feature_flag_called` appear in project 1 | Point `JS_POSTHOG_*` at PostHog Cloud (as a recorder only, not a test target). Note: Cloud's terms bar publishing performance results of Cloud itself. |
 | 5 | Flag flip reaches the page | Hard reload, then `posthog.getFeatureFlag(key)` returns true within 10 s | Increase the poll; worst case, restart `web` (pre-recorded fallback). |
-| 6 | posthog-js network-metrics `attributes` config shape | Read posthog-js types for `metrics.network` at the pinned version | Use the time-window fallback in §5.3. |
-| 7 | k6 v2 browser `page.on('request')` and `request.postData()` | A tiny k6 script against any page | Use `page.route` or HAR; worst case, capture with Chrome DevTools Protocol. |
+| 6 | posthog-js network-metrics `attributes` config shape | Read posthog-js types for `metrics.network` at the pinned version | Use the time-window fallback in §5.3. | **Verified:** `metrics.network` takes `{ name?, attributes?(request, response) }`; `attributes` is merged over the defaults (`packages/types/src/posthog-config.ts` `NetworkMetricsConfig`). |
+| 7 | k6 v2 browser `page.on('request')` and `request.postData()` | A tiny k6 script against any page | Use `page.route` or HAR; worst case, capture with Chrome DevTools Protocol. | **Verified** on k6 v2.3.0: both work. `resourceType()` returns `Fetch` / `XHR` (capitalized). |
 | 8 | Headless k6 browser isn't filtered as a bot | Network metrics appear for the k6 run (the user-agent opt-out only applies on `localhost`, loadPostHogJS.tsx:46) | Serve on `localhost`, or override the user agent in the k6 browser context. |
 | 9 | Local HTTPS and auth | k6 logs in with the stored state against `https://<DOMAIN>` | Trust Caddy's local CA and use one hostname everywhere. |
 | 10 | Memory | Rehearse the full demo while watching swap | Disable non-essential services (Temporal UI, Elasticsearch if unused), or use a remote machine. |
