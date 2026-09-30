@@ -69,9 +69,6 @@
 
   .reveal pre { width: 100%; box-shadow: none; font-size: 30px; margin: 0; }
   .reveal pre code { max-height: none; padding: 24px 30px; line-height: 1.35; border-radius: 14px; }
-  .mock { position: relative; }
-  .mock::before { content: "MOCK: illustrative, not a real run"; position: absolute; top: -18px; right: 20px; z-index: 2;
-    background: var(--fail); color: #fff; font: 800 28px/1 "Inter", Arial, sans-serif; padding: 8px 14px; border-radius: 8px; }
   .term { background: #000; color: var(--fg); font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 30px; line-height: 1.35;
     padding: 34px 40px; border-radius: 14px; border: 2px solid #333; white-space: pre; margin: 0; box-sizing: border-box; width: 100%; }
 
@@ -186,7 +183,7 @@
 <!-- 4 · Hook: bar charts -->
 <section>
   <h2>Requests per route, one journey</h2>
-  <svg viewBox="0 0 1800 640" width="1800" height="640" role="img" aria-label="Two bar charts, protocol test and browser journey. After a flagged change the browser's feature flag list route jumps about 8 times; the protocol test does not change.">
+  <svg viewBox="0 0 1800 640" width="1800" height="640" role="img" aria-label="Two bar charts, protocol test and browser journey. After a flagged change the browser's feature flag list route jumps from 4 to 20–26 calls per journey; the protocol test stays at 4.">
     <g font-size="30" font-weight="700">
       <!-- left panel: protocol test -->
       <text x="0" y="40" font-size="40" font-weight="900" fill="#7ab8ff">k6 protocol test</text>
@@ -217,19 +214,19 @@
         <rect x="1270" y="465" width="13" height="50"/>
       </g>
       <g class="fragment">
-        <rect x="1270" y="105" width="520" height="50" fill="#ff5c5c"/>
-        <text x="1760" y="92" text-anchor="end" font-size="44" font-weight="900" fill="#ff5c5c">≈ 8×</text>
+        <rect x="1270" y="105" width="412" height="50" fill="#ff5c5c"/>
+        <text x="1682" y="92" text-anchor="end" font-size="44" font-weight="900" fill="#ff5c5c">4 → 20–26</text>
         <text x="920" y="610" font-size="34" font-weight="800" fill="#ffd23f">one frontend change, behind one feature flag</text>
       </g>
-      <text x="0" y="610" font-size="28" fill="#b8b8c8">illustrative counts</text>
+      <text x="0" y="610" font-size="28" fill="#b8b8c8">flag list measured; other bars illustrative</text>
     </g>
   </svg>
   <p class="fragment" style="font-size:46px;font-weight:800">Load test: <span class="pass">still green.</span> Testing an app that no longer exists.</p>
   <aside class="notes">
     [~1:20 to 2:30] Left: what our k6 protocol test sends per route. Right: what a real browser sends
     doing the same journey. They match. Good load test.
-    Click. One frontend change, behind a feature flag. The browser now hits the flag list about eight
-    times as often. The load test? Didn't move. It can't: it's a script.
+    Click. One frontend change, behind a feature flag. The browser now hits the flag list 5 to 6.5
+    times as often: 4 calls per journey become 20 to 26 (3 measured runs). The protocol test still sends 4. The load test? Didn't move. It can't: it's a script.
     Click. "Our load test is still green. It's now testing an app that no longer exists."
   </aside>
 </section>
@@ -279,10 +276,11 @@ page.on('request', (req) => {
   </div>
   <aside class="notes">
     [4:00 to 5:30] The reference journey: k6 browser drives the real UI (flags page, type a search,
-    open a flag, open a dashboard) and records every API call with page.on('request'). For /query/
-    we also record the query kind from the body, because most UI traffic goes through that one endpoint.
+    open a flag, open a dashboard) and records every API call with page.on('request'). The UI puts
+    the query kind in the path (POST /query/HogQLQuery/), so each kind is its own route; only a bare
+    /query/ POST needs the kind read from the body.
     Click. PostHog sees the same calls in its own network metrics: PostHog recording PostHog. We show it
-    next to the score as a cross-check. It never gates the build: the browser capture is the ground truth,
+    next to the score as a cross-check; on a baseline run it agrees 100% per route with the browser capture. It never gates the build: the browser capture is the ground truth,
     it's immediate, and it doesn't depend on ingestion lag or an alpha product.
   </aside>
 </section>
@@ -317,25 +315,24 @@ page.on('request', (req) => {
     <p style="font-size:52px;font-weight:900;margin:18px 0 8px">Flip <code>meetup-no-debounce</code> in <span class="ph">PostHog</span></p>
     <p class="fallback">Fallback: 60 s timeout per step, then play the recorded video.</p>
   </div>
-  <div class="mock" style="margin-top:40px">
+  <div style="margin-top:40px">
 <pre class="term">$ node eval/score.js --scenario no-debounce --ref … --protocol …
-Coverage C   100.0%  (>= 95.0%)  <span class="pass">PASS</span>
-Mix      M    53.0%  (>= 85.0%)  <span class="fail">FAIL</span>
+Coverage C    97.7%  (>= 95.0%)  <span class="pass">PASS</span>
+Mix      M    76.2%  (>= 85.0%)  <span class="fail">FAIL</span>
 Stale    E     0.0%  (&lt;= 2.0%)  <span class="pass">PASS</span>
 Errors         0.0%  (&lt;= 1.0%)  <span class="pass">PASS</span>
-  mix under by 47.0%: GET /api/projects/:id/feature_flags/
-<span style="color:var(--hot)">PostHog</span> cross-check agreement 97.0%
+  mix under by 18.7%: GET /api/projects/:id/feature_flags/
 RESULT: <span class="fail">FAIL</span></pre>
   </div>
   <aside class="notes">
     [7:00 to 11:00] Step 1, baseline (1 min): show the baseline report, all gates green, PostHog
-    cross-check agrees.
+    cross-check agrees (measured: C 96.3%, M 96.3%, E 0.0%, errors 0.0%, agreement 100.0%).
     Step 2 (3 min, live): in the PostHog UI, turn on meetup-no-debounce. The journey hard-reloads and
     waits until it sees the flag, then runs. Then api.js, then score.js.
     Expected: Coverage PASSES, Mix FAILS. THIS is the key point: an endpoint checklist alone would have
     said everything's fine. Every route is still covered; the volume is wrong.
     If any step takes over 60 s: "Live demos, everybody," and play the video.
-    The terminal block on the slide is a mock for layout only; the numbers are not from a real run.
+    The terminal block is a real no-debounce run on self-hosted PostHog; live numbers shift a little with the search term.
   </aside>
 </section>
 
@@ -358,7 +355,8 @@ RESULT: <span class="fail">FAIL</span></pre>
   </div>
   <aside class="notes">
     [11:00 to 14:00] Step 3 (30 s, recorded): flip meetup-n-plus-one. The UI now fetches every flag's
-    activity endpoint, one request per row. Coverage fails and the report names the new route.
+    activity endpoint, one request per row. Coverage fails and the report names the new route
+    (measured: C 58.9%, the activity route is 39.4% of browser calls; M fails too, 57.3%).
     Step 4 (2.5 min): recorded agent run, sped up four times. Claude with the k6 MCP: pulls
     get_documentation, edits api.js, validate_script catches a wrong k6 API before anything runs,
     then run_script. Then LIVE: validate_script, run_script and score.js on the repaired test. These

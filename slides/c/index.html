@@ -92,11 +92,11 @@ Pause one beat. Click.
 </section>
 
 <section>
-  <svg width="1200" height="440" viewBox="0 0 1200 440" aria-label="Two bar charts. Browser requests jump 8x on one route; load test bars stay flat.">
+  <svg width="1200" height="440" viewBox="0 0 1200 440" aria-label="Two bar charts. Browser requests on one route jump from 4 to about 22 per journey; load test bars stay flat.">
     <g fill="#111">
       <rect x="60"  y="330" width="80" height="60"/><rect x="160" y="30" width="80" height="360" fill="#e0360a"/>
       <rect x="260" y="310" width="80" height="80"/><rect x="360" y="340" width="80" height="50"/>
-      <rect x="700" y="330" width="80" height="60"/><rect x="800" y="345" width="80" height="45"/>
+      <rect x="700" y="330" width="80" height="60"/><rect x="800" y="325" width="80" height="65"/>
       <rect x="900" y="310" width="80" height="80"/><rect x="1000" y="340" width="80" height="50"/>
     </g>
     <line x1="40" y1="392" x2="1160" y2="392" stroke="#111" stroke-width="4"/>
@@ -104,12 +104,12 @@ Pause one beat. Click.
       <text x="250" y="436">browser</text><text x="890" y="436">load test</text>
     </g>
   </svg>
-  <div class="num" style="font-size:300px"><em>8×</em></div>
+  <div class="num" style="font-size:300px"><em>5–6.5×</em></div>
   <aside class="notes">
 [1:15 → 1:40]
-SAY: "Then someone ships one frontend change, behind a feature flag. The real browser now sends about eight times as many requests to one route. That's the orange bar."
+SAY: "Then someone ships one frontend change, behind a feature flag. The real browser now sends five to six and a half times as many requests to one route: 4 per journey become 20 to 26. That's the orange bar."
 "The load test's chart on the right? Didn't move. Why would it. Nobody touched it."
-(8× is from the baseline vs no-debounce runs; re-check against rehearsal numbers.)
+(Measured: 3 k6 browser runs per scenario, search terms checkout/billing/onboarding. The protocol test still sends 4.)
   </aside>
 </section>
 
@@ -172,7 +172,7 @@ CITE: posthog.com/handbook/engineering/development-process
   <h1>Record the <em>real</em> browser.</h1>
   <aside class="notes">
 [4:00 → 4:40]
-SAY: "So here's the idea. Keep a reference journey: k6 browser drives the real PostHog UI and records every API call with page.on('request'). For each /query/ call it also records which query type it sent, because in PostHog one route carries many kinds of work."
+SAY: "So here's the idea. Keep a reference journey: k6 browser drives the real PostHog UI and records every API call with page.on('request'). Query calls carry their query type in the URL, POST /query/HogQLQuery/ and so on, so each kind of query is its own route."
 "That's the ground truth. It's deterministic, it's immediate, and it sees request bodies."
   </aside>
 </section>
@@ -182,7 +182,7 @@ SAY: "So here's the idea. Keep a reference journey: k6 browser drives the real P
   <aside class="notes">
 [4:40 → 5:15]
 SAY: "And because this is PostHog, the same calls show up in PostHog's own network metrics. PostHog, recording PostHog, being tested by k6."
-"I use that as a cross-check, not the judge. If ingestion is late, the check still works. Metrics is also an alpha product, so I don't want it on the critical path."
+"I use that as a cross-check, not the judge. On a baseline run it agrees with the browser capture 100%, route by route. If ingestion is late, the check still works. Metrics is also an alpha product, so I don't want it on the critical path."
   </aside>
 </section>
 
@@ -235,6 +235,7 @@ SAY: "One honest caveat up front: this is a journey contract, not a model of you
 [7:00 → 8:00] DEMO STEP 1 · BASELINE · switch to terminal
 DO: run the scorer on the baseline. Show all gates green, and the PostHog cross-check panel agreeing.
 SAY: "Baseline. Coverage, mix, staleness, errors: all green. And over here PostHog's own network metrics show the same routes. PostHog agrees with k6 about PostHog."
+(Measured baseline: C 96.3%, M 96.3%, E 0.0%, errors 0.0%, PostHog cross-check agreement 100.0%.)
 TIMEOUT 60 s → FALLBACK: play baseline video. SAY: "This is the same run from this afternoon."
   </aside>
 </section>
@@ -251,20 +252,20 @@ TIMEOUT 60 s → FALLBACK: play the no-debounce video.
 </section>
 
 <section>
-  <div class="num" style="font-size:280px">1 <em>→</em> 8</div>
-  <p class="aside">requests per search</p>
+  <div class="num" style="font-size:280px">4 <em>→</em> 22</div>
+  <p class="aside">flag-list requests per journey</p>
   <aside class="notes">
 [9:00 → 9:30]
-SAY: "Before: type a search term, one request. After: one request per keystroke. An eight-letter search term is now eight requests. That's the 8× from the start."
-(journey.js types "checkout", 8 keys at 120 ms each, under the 300 ms debounce, so 1 → 8 follows from the code. Not yet measured: confirm in rehearsal.)
+SAY: "Before: the whole journey makes four flag-list requests. After: requests on every keystroke. Typing 'checkout' now makes twenty-two. The load test still sends four. That's the five-to-six-and-a-half times from the start."
+(Measured over 3 k6 browser runs: 20–26 per journey depending on the search term; 22 for "checkout", the demo's term.)
   </aside>
 </section>
 
 <section>
-  <h1>coverage: <em>100%</em></h1>
+  <h1>coverage: <em>97.7%</em></h1>
   <aside class="notes">
 [9:30 → 10:00]
-SAY: "Coverage passes. Every route the browser hits, the load test still hits. Same routes. Nothing new, nothing missing."
+SAY: "Coverage passes: 97.7%, over the 95% bar. The load test still hits the routes that carry the browser's traffic. No new route."
   </aside>
 </section>
 
@@ -273,6 +274,7 @@ SAY: "Coverage passes. Every route the browser hits, the load test still hits. S
   <aside class="notes">
 [10:00 → 10:30]
 SAY: "Mix fails. The proportions moved: the browser now sends far more of its traffic to that search route, and the load test is still sending yesterday's share."
+(Measured: M 76.2% against an 85% bar; the flag list is 18.7 points under.)
   </aside>
 </section>
 
@@ -291,6 +293,7 @@ SAY: "This is the point of the whole demo. If your check is 'does the load test 
 [11:00 → 11:30] DEMO STEP 3 · RECORDED (30 s)
 DO: play the meetup-n-plus-one recording.
 SAY: "Second flag: an N+1. The list now fetches each flag's activity endpoint, one request per row. Now coverage fails, and the report names the new route. Different change, different gate. That's why they're independent."
+(Measured: C 58.9%; the activity route is 39.4% of browser calls. M fails too, 57.3%.)
 CUT IF LONG: show one screenshot instead (saves 30 s).
   </aside>
 </section>
