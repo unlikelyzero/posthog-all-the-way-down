@@ -79,6 +79,22 @@
   .qr { width: 300px; height: 300px; border-radius: 12px; }
 
   svg text { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; }
+
+  /* Subtitle face: pops in happy, then frowns when the "out of date" line appears */
+  .face { display: inline-block; height: 0.9em; width: 0.9em; vertical-align: -0.1em; margin-left: 0.15em; transform: scale(0); }
+  .face .head { fill: var(--pass); transition: fill .6s ease .15s; }
+  .face .mouth { fill: none; stroke: var(--bg); stroke-width: 7; stroke-linecap: round;
+    transform-box: fill-box; transform-origin: center; transition: transform .6s cubic-bezier(.5, -0.6, .5, 1.6); }
+  .reveal section.present .face { animation: face-pop .7s cubic-bezier(.3, 1.6, .5, 1) .35s forwards; }
+  .reveal section:has(.stale.visible) .face .head { fill: var(--fail); }
+  .reveal section:has(.stale.visible) .face .mouth { transform: translateY(6px) scaleY(-1); }
+  .reveal section:has(.stale.visible) .face { animation: face-pop .7s cubic-bezier(.3, 1.6, .5, 1) .35s forwards, face-droop .8s ease forwards; }
+  @keyframes face-pop { from { transform: scale(0) rotate(-40deg); } to { transform: scale(1) rotate(0); } }
+  @keyframes face-droop { 0% { transform: scale(1); } 40% { transform: scale(.85) rotate(-8deg); } 100% { transform: scale(1) rotate(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal section.present .face { animation: none; transform: none; }
+    .face .head, .face .mouth { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -172,10 +188,14 @@
 
 <!-- 3 · Subtitle -->
 <section class="center">
-  <p class="huge">Your load test passed.</p>
-  <p class="huge fragment fail">It's also lying.</p>
+  <p class="huge">Your load test passed.<svg class="face" viewBox="0 0 100 100" role="img" aria-label="face: smiling, then frowning">
+    <circle class="head" cx="50" cy="50" r="48"/>
+    <circle cx="34" cy="38" r="7" fill="#0a0a0f"/><circle cx="66" cy="38" r="7" fill="#0a0a0f"/>
+    <path class="mouth" d="M28 60 Q50 82 72 60"/>
+  </svg></p>
+  <p class="huge fragment fail stale">But it's now out of date.</p>
   <aside class="notes">
-    [~1:10, 10 s] Read it. Click. "It's also lying." Now the serious part. Straight into the hook;
+    [~1:10, 10 s] Read it; the smiley pops in. Click: "But it's now out of date." The smiley turns into a frown. Now the serious part. Straight into the hook;
     the hook budget is tight because the title ate some of it.
   </aside>
 </section>
