@@ -475,66 +475,71 @@ RESULT: <span class="fail">FAIL</span></pre>
 <section>
   <div class="cols" style="grid-template-columns: 1fr 1.25fr">
     <div class="demo">
-      <span class="tag" style="background:#555">RECORDED</span>
+      <span class="tag">LIVE</span>
       <p style="font-size:40px;font-weight:900;margin:16px 0 6px"><code>meetup-n-plus-one</code></p>
       <p>Coverage <span class="fail">FAILS</span>.<br>Report names the new route.</p>
-      <p class="fallback">30 s. Cut to a screenshot if running long.</p>
+      <p class="fallback">Short on time: <code>./demo.sh offline n-plus-one</code></p>
     </div>
     <div class="demo">
-      <span class="tag" style="background:#555">RECORDED 4×</span> <span class="tag">THEN LIVE</span>
-      <p style="font-size:40px;font-weight:900;margin:16px 0 6px"><span class="ai">Claude + k6 MCP</span> repairs it</p>
+      <span class="tag" style="background:#555">FROM THE EVAL</span>
+      <p style="font-size:40px;font-weight:900;margin:16px 0 6px"><span class="ai">Claude</span> repairs it</p>
       <p style="font-family:Menlo,monospace;font-size:30px;line-height:1.5">
-        get_documentation<br>→ edit api.js<br>→ validate_script <span class="fail">catches a wrong k6 API</span><br>→ run_script<br>→ score.js <span class="pass">green</span></p>
-      <p class="fallback">Live part: validate_script + run_script + score. 60 s timeout, then video.</p>
+        read the score report<br>→ tally routes in the browser runs<br>→ edit api.js<br>→ k6 run + score.js<br>→ repeat until <span class="pass">green</span></p>
+      <p class="fallback">Held-out runs: C 100%, M 90.6%, <span class="pass">PASS</span>. 28 tool calls, $1.08.</p>
     </div>
   </div>
   <aside class="notes">
-    [11:00 to 14:00] Step 3 (30 s, recorded): flip meetup-n-plus-one. The UI now fetches every flag's
+    [~2 min] Step 3: flip meetup-n-plus-one and run ./demo.sh n-plus-one. The UI now fetches every flag's
     activity endpoint, one request per row. Coverage fails and the report names the new route
     (measured: C 58.9%, the activity route is 39.4% of browser calls; M fails too, 57.3%).
-    Step 4 (2.5 min): recorded agent run, sped up four times. Claude with the k6 MCP: pulls
-    get_documentation, edits api.js, validate_script catches a wrong k6 API before anything runs,
-    then run_script. Then LIVE: validate_script, run_script and score.js on the repaired test. These
-    are deterministic, so safe on stage. Score goes green.
-    Fallback: 60 s timeout, then video.
+    If short on time, ./demo.sh offline n-plus-one scores a seeded run instantly; say it's seeded.
+    Step 4, from the eval, not live: Claude Code (Sonnet 5.5, headless) gets the score report and the
+    stale api.js. It read the report, tallied routes in the browser runs, edited api.js, ran k6 and
+    score.js itself, and repeated until green. Then we graded it on held-out browser runs it never saw:
+    C 100%, M 90.6%, pass. 28 tool calls, about a dollar.
   </aside>
 </section>
 
 <!-- 10 · Evaluating the agent: design -->
 <section>
   <p class="kicker">Who tests the agent?</p>
-  <p class="big">3 scenarios × 5 trials<br><span class="ai">with k6 MCP</span> vs <span class="dim">without</span></p>
+  <p class="big">Same task, <span class="ai">with k6 MCP</span> vs <span class="dim">without</span></p>
   <ul style="font-size:40px">
     <li>Graded on <strong>held-out</strong> browser runs the agent never saw</li>
     <li>Realism checks: setup auth, &gt;1 VU, sleep, check. No replaying the route list.</li>
+    <li>Planned: 3 scenarios × 5 trials each way. <strong>Ran: 1 scenario, 4 trials.</strong></li>
   </ul>
   <p class="cite">Same shape as <span class="ph">PostHog</span>'s own MCP evals: services/mcp/evals README, PostHog repo</p>
   <aside class="notes">
-    [14:00 to 15:30] The agent fixed it once on stage. That's an anecdote. So: three scenarios
-    (no-debounce, n-plus-one, both), five trials each, with the k6 MCP and without it (same agent,
-    shell k6 only). Graded on held-out browser runs with different search terms, so it can't overfit
-    the trace. Realism gates stop it from just replaying the route list.
+    [~1 min] The agent fixing it once is an anecdote. So the design: the same repair task with the k6 MCP
+    and without it (shell k6 only), graded on held-out browser runs with different search terms so it
+    can't overfit the trace. Realism gates stop it from just replaying the route list.
     "This is how PostHog evaluates its own MCP server": cite the services/mcp/evals README.
+    Be upfront: we planned 3 scenarios times 5 trials, and ran 1 scenario, 4 trials, before the talk.
   </aside>
 </section>
 
 <!-- 11 · Evaluating the agent: results -->
 <section>
-  <p class="kicker">Pilot results</p>
+  <p class="kicker">What we got so far</p>
   <h2>Is the MCP bolted on?</h2>
   <table>
-    <tr><th>Condition</th><th>Pass (of 15)</th><th>95% CI (Wilson)</th><th>validate_script caught a mistake</th></tr>
-    <tr><td class="ai">with k6 MCP</td><td>__ / 15</td><td>[ __ , __ ]</td><td>__ of 15 runs</td></tr>
-    <tr><td class="dim">without</td><td>__ / 15</td><td>[ __ , __ ]</td><td>n/a</td></tr>
+    <tr><th>Condition</th><th>Trials</th><th>Passed on held-out runs</th><th>k6 MCP tool calls</th></tr>
+    <tr><td class="ai">k6 MCP offered</td><td>3</td><td>2</td><td><strong>0</strong></td></tr>
+    <tr><td class="dim">without</td><td>1</td><td>1</td><td>n/a</td></tr>
   </table>
-  <p class="small dim" style="margin-top:30px">Blanks filled from results.jsonl before the talk. Per-scenario breakdown on the <span class="ph">PostHog</span> dashboard.</p>
-  <p class="fragment" style="font-size:48px;font-weight:800">n = 5 per cell. A pilot, not a paper.</p>
+  <p class="fragment" style="font-size:48px;font-weight:800;margin-top:36px">Offered the k6 MCP, the agent never called it.</p>
+  <p class="fragment" style="font-size:34px">It already knew k6 and had the k6 CLI. The one failure was our harness blocking its helper scripts, not a wrong fix.</p>
+  <p class="fragment" style="font-size:40px;font-weight:800">n = 4, one scenario. An anecdote with a table, not a result.</p>
   <aside class="notes">
-    [15:30 to 17:00] Fill this table from results.jsonl before the talk; do not present blanks.
-    Read: pass rate with the MCP vs without, with Wilson intervals, and how often validate_script
-    caught a bad k6 API before the run. Pass@1 is the headline; don't say "pass@k" loosely.
-    Click. Be honest: five trials per cell, the intervals are wide, call it a pilot.
-    If running long, this and the previous slide collapse into this table alone (saves 1.5 min).
+    [~1.5 min] Real numbers, repair-no-debounce only. With the k6 MCP offered: 3 trials, 2 passed on
+    held-out runs (C 100%, M 90.6% and 89.2%). Without: 1 trial, passed (C 100%, M 97.0%).
+    Click. The finding: the MCP was connected and its tools were offered every time, and the agent called
+    it zero times. It used shell k6, which the prompt also mentions.
+    Click. The failure: our tool allowlist blocked the node scripts it wrote to count routes, so it gave up
+    before editing. That's a harness bug, now fixed, not the agent getting k6 wrong.
+    Click. Four trials. Don't draw a conclusion; the question for the room is when an agent reaches for
+    an MCP at all if it already knows the tool.
   </aside>
 </section>
 
