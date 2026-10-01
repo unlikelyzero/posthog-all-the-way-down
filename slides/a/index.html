@@ -532,7 +532,7 @@ page.on('request', (req) => {
     <span>→</span>
     <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>k6/session.js</code><p class="dim">same routes, same order, 3 VUs</p></div>
     <span>→</span>
-    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">Grafana k6</p><code>228/228 checks</code><p class="dim">0% failed requests</p></div>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">Grafana k6 MCP</p><code>validate_script → run_script</code><p class="dim">19/19, then 95/95 checks, 0% failed</p></div>
   </div>
   <table class="fragment" style="margin-top:34px;font-size:34px">
     <tr><th>Scored against my session</th><th>Coverage</th><th>Mix</th><th>Stale</th></tr>
@@ -548,8 +548,9 @@ page.on('request', (req) => {
     Click. Scored against my session: the stage test fails all three gates; the generated one passes Mix and
     Stale. Coverage is 90.5%, and the only missing routes are my two sign-in calls, because a load test logs in
     once in setup, not on every page.
-    Honest notes: one recorded run. The agent couldn't bake the login into a bundle for the k6 MCP, so the
-    run was the k6 CLI, not the MCP's run_script.
+    Then the Grafana k6 MCP checked it: validate_script passed (19 of 19 checks) and run_script ran it against
+    PostHog (95 of 95 checks, no failed requests). The full 3-VU run on the k6 CLI was 228 of 228. One recorded
+    run each; the MCP's run_script uses its own 1 VU / 30 s settings, not the script's 3 VUs.
   </aside>
 </section>
 
