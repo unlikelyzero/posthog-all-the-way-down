@@ -250,20 +250,6 @@ export default async function () {
   </aside>
 </section>
 
-<!-- 3 · Subtitle -->
-<section class="center">
-  <p class="huge">Your load test passed.<svg class="face" viewBox="0 0 100 100" role="img" aria-label="face: smiling, then frowning">
-    <circle class="head" cx="50" cy="50" r="48"/>
-    <circle cx="34" cy="38" r="7" fill="#0a0a0f"/><circle cx="66" cy="38" r="7" fill="#0a0a0f"/>
-    <path class="mouth" d="M28 60 Q50 82 72 60"/>
-  </svg></p>
-  <p class="huge fragment fail stale">But it's now out of date.</p>
-  <aside class="notes">
-    [~1:10, 10 s] Read it; the smiley pops in. Click: "But it's now out of date." The smiley turns into a frown. Now the serious part. Straight into the hook;
-    the hook budget is tight because the title ate some of it.
-  </aside>
-</section>
-
 <!-- 3b · k6 browser driving PostHog -->
 <section>
   <div class="kicker">The reference journey</div>
@@ -284,7 +270,7 @@ export default async function () {
 <!-- 4 · Hook: bar charts -->
 <section>
   <h2>Requests per route, one journey</h2>
-  <svg viewBox="0 0 1800 640" width="1800" height="640" role="img" aria-label="Two bar charts, protocol test and browser journey. After a flagged change the browser's feature flag list route jumps from 4 to 20–26 calls per journey; the protocol test stays at 4.">
+  <svg viewBox="0 0 1800 640" width="1800" height="640" role="img" aria-label="Two bar charts, protocol test and browser journey. The protocol test sends 4 flag-list calls per journey. After a flagged change the browser's feature flag list route jumps from 4 to 20–26 calls per journey; the protocol test stays at 4.">
     <g font-size="30" font-weight="700">
       <!-- left panel: protocol test -->
       <text x="0" y="40" font-size="40" font-weight="900" fill="#7ab8ff">k6 protocol test</text>
@@ -296,6 +282,7 @@ export default async function () {
       </g>
       <g fill="#7ab8ff">
         <rect x="350" y="105" width="75" height="50"/>
+        <text x="440" y="142" font-size="36" font-weight="900">4</text>
         <rect x="350" y="225" width="94" height="50"/>
         <rect x="350" y="345" width="38" height="50"/>
         <rect x="350" y="465" width="19" height="50"/>
@@ -341,6 +328,20 @@ export default async function () {
     Click. "Our load test is still green. It's now testing an app that no longer exists."
     The two clips appear with the red bar: the same search box typing "checkout". Debounced, it sends
     1 list request after you stop typing; with the debounce removed it sends 16, two per keystroke.
+  </aside>
+</section>
+
+<!-- 4b · Subtitle: passed, but out of date -->
+<section class="center">
+  <p class="huge">Your load test passed.<svg class="face" viewBox="0 0 100 100" role="img" aria-label="face: smiling, then frowning">
+    <circle class="head" cx="50" cy="50" r="48"/>
+    <circle cx="34" cy="38" r="7" fill="#0a0a0f"/><circle cx="66" cy="38" r="7" fill="#0a0a0f"/>
+    <path class="mouth" d="M28 60 Q50 82 72 60"/>
+  </svg></p>
+  <p class="huge fragment fail stale">But it's now out of date.</p>
+  <aside class="notes">
+    [10 s] The punchline to the chart you just saw. Read it; the smiley pops in. Click: "But it's now out
+    of date." The smiley turns into a frown. Then into the problem.
   </aside>
 </section>
 
