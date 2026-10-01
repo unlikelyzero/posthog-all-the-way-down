@@ -525,38 +525,7 @@ RESULT: <span class="fail">FAIL</span></pre>
     [~1 min] From the eval, not live: Claude Code (Sonnet 5.5, headless) gets the no-debounce score report and
     the stale api.js. It read the report, tallied routes in the browser runs, edited api.js, ran k6 and
     score.js itself, and repeated until green. Then we graded it on held-out browser runs it never saw:
-    C 100%, M 90.6%, pass. 28 tool calls, about a dollar. Note what it used: shell k6, not the k6 MCP.
-  </aside>
-</section>
-
-<!-- 11b · The k6 MCP, used -->
-<section>
-  <p class="kicker">Offered the k6 MCP 3 times, the agent called it 0 times. Why?</p>
-  <h2 style="margin-bottom:24px">The <span class="k6">k6 MCP</span> runs a copy of your script</h2>
-  <div class="cols" style="gap:40px">
-<pre class="term" style="font-size:24px;padding:24px 28px"><span class="dim"># api.js as written: relative imports</span>
-validate_script  <span class="fail">invalid</span>, exit 107
-  The moduleSpecifier "./auth.js"
-  couldn't be found
-<span class="dim"># bundled into one file (k6/bundle.js)</span>
-validate_script  <span class="pass">valid</span>, 53/53 checks
-run_script       <span class="pass">success</span>, 159/159 checks
-                 http_req_failed 0.00%</pre>
-    <div>
-      <p style="font-size:36px;margin-top:0">The tools copy the script to a temp file, so <code>./auth.js</code> can't resolve, and they can't pass env vars.</p>
-      <p style="font-size:36px">Bundle it, and Claude + the <span class="k6">k6 MCP</span> validates and runs it against <span class="ph">PostHog</span>.</p>
-    </div>
-  </div>
-  <aside class="notes">
-    [~1 min] In our first agent runs (1 scenario, 4 trials, graded on held-out browser runs), 3 of 4 passed,
-    but with the k6 MCP offered the agent called it zero times. It used shell k6. Why? We tried it directly. validate_script and run_script
-    copy the script to a temp file, so our api.js, which imports ./auth.js and ./route.js, fails before it
-    loads. And there's no way to pass env vars, so it can't log in. With the CLI right there, the agent took
-    the path that worked. Bundle the script into one file with the stack URL baked in, and the k6 MCP
-    validates it (53 of 53 checks) and runs it (159 of 159 checks, 0% failed requests). Recorded run, Claude
-    Sonnet 5.5 headless, k6 MCP only. It took under 3 minutes, so it's not live. Note: run_script used its
-    own 1 VU / 30 s config rather than the script's 3 VUs.
-    Next slide: what happens when the agent has both MCPs.
+    C 100%, M 90.6%, pass. 28 tool calls, about a dollar. Note what it used: shell k6. Offered the k6 MCP in 3 runs, it called it zero times. Next: both MCPs.
   </aside>
 </section>
 
@@ -582,8 +551,9 @@ run_script       <span class="pass">success</span>, 159/159 checks
     top. It rewrites api.js to that mix, then the k6 MCP validates it (84 of 84 checks) and runs it (336 of
     336). Click. Then score.js grades it against PostHog's user traffic, not anything the agent saw directly:
     coverage 98.8%, mix 98.5%, pass. 12 turns, about a dollar and a half.
-    Be straight: one recorded run, not an eval. On a laptop the users are k6 browsers. The earlier eval, before
-    the bundling fix, had the k6 MCP offered and never called.
+    Be straight: one recorded run, not an eval. On a laptop the users are k6 browsers. If asked why the earlier runs
+    skipped the k6 MCP: its tools run a temp copy of the script, so relative imports and env vars break;
+    k6/bundle.js inlines both.
   </aside>
 </section>
 
