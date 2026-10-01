@@ -386,7 +386,7 @@ page.on('request', (req) => {
     Click. PostHog sees the same calls in its own network metrics: PostHog recording PostHog. We show it
     next to the score as a cross-check; on a baseline run it agrees 100% per route with the browser capture. On a PR
     it never gates the build: the browser capture is immediate and doesn't depend on ingestion lag. But that
-    agreement is what lets PostHog take over in production, where it has real users. Come back to this after the demo.
+    agreement is what lets PostHog take over in production, where it has real users. After the demo we point the scorer at it directly.
   </aside>
 </section>
 
@@ -468,51 +468,6 @@ RESULT: <span class="fail">FAIL</span></pre>
   </aside>
 </section>
 
-<!-- 8b · Who plays the user? -->
-<section>
-  <p class="kicker">Where the reference comes from</p>
-  <h2 style="margin-bottom:30px">Who plays the user?</h2>
-  <div class="cols" style="gap:40px">
-    <div class="card" style="border-top:8px solid var(--k6)">
-      <p class="dim" style="margin:0;font-size:30px">On a PR: no users yet</p>
-      <p style="font-size:46px;font-weight:900;line-height:1.15;margin:10px 0 0">A <span class="k6">Grafana k6</span> browser plays one.</p>
-      <p class="dim" style="margin:10px 0 0;font-size:30px">Deterministic, so it can gate the merge.</p>
-    </div>
-    <div class="card fragment" style="border-top:8px solid var(--hot)">
-      <p class="dim" style="margin:0;font-size:30px">In production: real users</p>
-      <p style="font-size:46px;font-weight:900;line-height:1.15;margin:10px 0 0"><span class="ph">PostHog</span> already recorded every call their browsers made.</p>
-      <p class="dim" style="margin:10px 0 0;font-size:30px">Same score.js. Same gates.</p>
-    </div>
-  </div>
-  <div class="cols fragment" style="gap:40px;margin-top:30px">
-<pre class="term" style="font-size:24px;padding:24px 28px"><span class="dim">-- the cross-check query, one filter swapped</span>
-SELECT method, url.template, sum(count)
-FROM posthog.metrics …
-WHERE metric_name = 'http.client.request.duration'
-  <s class="dim">AND meetup.run_id = {run_id}</s>  <span class="dim">-- one k6 run</span>
-  AND timestamp &gt;= now() - 1 hour  <span class="dim">-- every user</span></pre>
-<pre class="term" style="font-size:24px;padding:24px 28px">$ ./demo.sh users 60m
-Reference: what <span class="ph">PostHog</span> saw users' browsers
-  send, last 60 min (2876 calls, 27 routes)
-Coverage C    97.6%  (&gt;= 95.0%)  <span class="pass">PASS</span>
-Mix      M    78.3%  (&gt;= 85.0%)  <span class="fail">FAIL</span>
-  mix under by 15.5%: GET …/feature_flags/
-RESULT: <span class="fail">FAIL</span></pre>
-  </div>
-  <p class="cite" style="margin-top:20px">On this laptop the only "users" are k6 browsers, running with the debounce removed. Same verdict as the k6 browser reference (M 76.2%).</p>
-  <aside class="notes">
-    [~1 min] Who plays the user? On a PR there are no users yet, so a k6 browser plays one. It's
-    deterministic, so it can gate the merge.
-    Click. In production you have real users, and PostHog already recorded every API call their browsers
-    made: that's the network metrics we've been cross-checking against.
-    Click. It's the same query as the cross-check with one filter swapped: instead of one k6 run's id, a time
-    window, so every session. Same score.js, same gates. Optional live step, right after the no-debounce
-    journey: ./demo.sh users 5m (needs ./demo.sh prepare beforehand). It should fail Mix like the browser did.
-    Be straight about the caveat: on this laptop the only users are k6 browsers. And there's no per-page
-    filter, so in production it also counts pages the load test never meant to cover.
-  </aside>
-</section>
-
 <!-- 8c · Are you testing where users are? -->
 <section>
   <p class="kicker">Same gates, a different question</p>
@@ -530,8 +485,10 @@ RESULT: <span class="fail">FAIL</span></pre>
   </div>
   <p class="cite" style="margin-top:20px">Stage protocol test vs <code>score.js --reference posthog --since 2m</code>, with k6 browsers as users on persons, insights, activity and cohorts. Demo stack.</p>
   <aside class="notes">
-    [~1 min] Point the same scorer at all of PostHog's user traffic and it answers a second question: is the
-    load test even in the right part of the app? Here the users were on persons, insights, activity and
+    [~1 min] On a PR a k6 browser plays the user. In production you have real users, and PostHog already
+    records every call their browsers make. Point the same scorer at that traffic (score.js --reference
+    posthog: the cross-check query with a time window instead of a run id) and it answers a second question:
+    is the load test even in the right part of the app? Here the users were on persons, insights, activity and
     cohorts; our load test is flags and dashboards. Coverage 89.9%: shared app-shell calls carry most of it.
     Mix 57%. And Stale: 35.8% of the load test's calls go to routes users never touched in that window.
     Click. The report names both sides: what the load test hammers that nobody uses, and what users hit
