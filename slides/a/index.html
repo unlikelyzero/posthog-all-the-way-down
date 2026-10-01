@@ -240,7 +240,7 @@
         <text x="331" y="238" font-size="38" font-weight="900" fill="#0a0a0f">PostHog</text>
         <text x="331" y="275" font-size="28" font-weight="700" fill="#0a0a0f">stores eval results</text></g>
     </g>
-    <image class="fragment" data-fragment-index="15" href="../assets/hedgehog-grot.webp" x="605" y="315" width="390" height="260" style="clip-path: inset(0 round 18px)"><title>The PostHog hedgehog and Grafana's Grot, smiling at each other</title></image>
+    <image class="fragment gifreplay" data-fragment-index="15" href="../assets/hedgehog-grot-hug.gif" x="605" y="315" width="390" height="260" style="clip-path: inset(0 round 18px)"><title>The PostHog hedgehog and Grafana's Grot, smiling at each other</title></image>
   </svg>
   <aside class="notes">
     [~0:40, 45 s] One click per box, then per arrow, around the loop: PostHog, self-hosted in Docker on this laptop, is the app under test. k6 browser
@@ -661,9 +661,13 @@ page.on('request', (req) => {
   ['ready', 'slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(e => Reveal.on(e, updateCounters));
 
   // Animated GIFs restart from frame one each time their slide opens (a new URL forces a fresh decode).
-  Reveal.on('slidechanged', (e) => e.currentSlide.querySelectorAll('img.gifreplay').forEach((img) => {
-    img.src = img.src.split('?')[0] + '?t=' + Date.now()
-  }))
+  const replay = (el) => {
+    const attr = el.tagName === 'image' ? 'href' : 'src'
+    el.setAttribute(attr, el.getAttribute(attr).split('?')[0] + '?t=' + Date.now())
+  }
+  Reveal.on('slidechanged', (e) => e.currentSlide.querySelectorAll('img.gifreplay').forEach(replay))
+  // A GIF revealed by a click restarts on that click.
+  Reveal.on('fragmentshown', (e) => e.fragments.filter((f) => f.classList.contains('gifreplay')).forEach(replay))
 
   // Frame recordings (slides/record.sh): each .framerec plays its frames in real time while its slide is
   // showing, loops, and shows the per-frame request count in its .calls element.
