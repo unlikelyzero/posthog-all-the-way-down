@@ -509,31 +509,9 @@ RESULT: <span class="fail">FAIL</span></pre>
   </aside>
 </section>
 
-<!-- 10 · Evaluating the agent: design -->
-<section>
-  <p class="kicker">Who tests the agent?</p>
-  <p class="big">Same task, <span class="ai">with k6 MCP</span> vs <span class="dim">without</span></p>
-  <ul style="font-size:40px">
-    <li>Graded on <strong>held-out</strong> browser runs the agent never saw</li>
-    <li>Realism checks: setup auth, &gt;1 VU, sleep, check. No replaying the route list.</li>
-    <li>Planned: 3 scenarios × 5 trials each way. Ran: 1 scenario, 4 trials.</li>
-  </ul>
-  <p class="fragment" style="font-size:48px;font-weight:800;margin:30px 0 0">Offered the <span class="k6">k6 MCP</span> 3 times, the agent called it <span class="fail">0</span> times.</p>
-  <p class="cite">Same shape as <span class="ph">PostHog</span>'s own MCP evals: services/mcp/evals README, PostHog repo</p>
-  <aside class="notes">
-    [~1 min] The agent fixing it once is an anecdote. So the design: the same repair task with the k6 MCP
-    and without it (shell k6 only), graded on held-out browser runs with different search terms so it
-    can't overfit the trace. Realism gates stop it from just replaying the route list.
-    "This is how PostHog evaluates its own MCP server": cite the services/mcp/evals README.
-    Be upfront: we planned 3 scenarios times 5 trials, and ran 1 scenario, 4 trials, before the talk.
-    Click. What we got: 3 of 4 passed on held-out runs (the one failure was our harness blocking its scripts).
-    But with the k6 MCP offered, the agent called it zero times. It used shell k6. Next slide: why.
-  </aside>
-</section>
-
 <!-- 11b · The k6 MCP, used -->
 <section>
-  <p class="kicker">First, make the k6 MCP usable</p>
+  <p class="kicker">Offered the k6 MCP 3 times, the agent called it 0 times. Why?</p>
   <h2 style="margin-bottom:24px">The <span class="k6">k6 MCP</span> runs a copy of your script</h2>
   <div class="cols" style="gap:40px">
 <pre class="term" style="font-size:24px;padding:24px 28px"><span class="dim"># api.js as written: relative imports</span>
@@ -550,7 +528,8 @@ run_script       <span class="pass">success</span>, 159/159 checks
     </div>
   </div>
   <aside class="notes">
-    [~1 min] Why did it skip the k6 MCP? We tried it directly. validate_script and run_script
+    [~1 min] In our first agent runs (1 scenario, 4 trials, graded on held-out browser runs), 3 of 4 passed,
+    but with the k6 MCP offered the agent called it zero times. It used shell k6. Why? We tried it directly. validate_script and run_script
     copy the script to a temp file, so our api.js, which imports ./auth.js and ./route.js, fails before it
     loads. And there's no way to pass env vars, so it can't log in. With the CLI right there, the agent took
     the path that worked. Bundle the script into one file with the stack URL baked in, and the k6 MCP
