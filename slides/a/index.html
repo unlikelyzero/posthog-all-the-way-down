@@ -306,27 +306,7 @@
   <p class="huge fragment fail stale">But it's now out of date.</p>
   <aside class="notes">
     [10 s] The punchline to the chart you just saw. Read it; the smiley pops in. Click: "But it's now out
-    of date." The smiley turns into a frown. Then into the problem.
-  </aside>
-</section>
-
-<!-- 5 · The problem -->
-<section>
-  <p class="kicker">The problem</p>
-  <p class="big">A protocol test is a <span style="color:var(--hot)">cached</span> model of what the frontend <em>used to</em> send.</p>
-  <p class="fragment" style="font-size:48px;margin-top:40px">Nothing tells you when the cache goes stale.</p>
-  <ul class="fragment" style="font-size:38px">
-    <li>Code review sees <em>"removed a debounce"</em>. It doesn't see the new load profile.</li>
-    <li><span class="ph">PostHog</span> deploys every merge to master.</li>
-  </ul>
-  <p class="cite fragment">Source: PostHog Handbook, Engineering › "Development process"</p>
-  <aside class="notes">
-    [2:30 to 4:00] A protocol test is a cached model of what the frontend used to send. Someone
-    recorded or hand-wrote it once. Nothing invalidates that cache.
-    Click. Code review can see a debounce was removed. It can't tell you what that does to the load
-    profile, or whether anyone updated the load test.
-    Click. And here, at PostHog, every merge to master deploys. Cite the handbook's development-process
-    page. The cache goes stale all the time.
+    of date." The smiley turns into a frown. Then the obvious fix.
   </aside>
 </section>
 
