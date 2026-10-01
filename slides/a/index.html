@@ -411,6 +411,34 @@ page.on('request', (req) => {
   </aside>
 </section>
 
+<!-- 11c · Both MCPs, one loop -->
+<section>
+  <p class="kicker">Both MCPs, one loop</p>
+  <h2 style="margin-bottom:36px"><span class="ph">PostHog</span> tells the agent what users do.<br><span class="k6">k6</span> makes the test match.</h2>
+  <div class="loop">
+    <div class="card" style="border-top:8px solid var(--hot)"><p class="ph">PostHog MCP</p><code>execute-sql</code><p class="dim">what users' browsers sent: 28 routes</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>edit api.js</code><p class="dim">match the mix</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>validate_script</code><p class="dim">valid, 84/84 checks</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>run_script</code><p class="dim">336/336 checks</p></div>
+  </div>
+  <p class="fragment" style="font-size:52px;font-weight:900;margin:44px 0 0">Graded against <span class="ph">PostHog</span>'s user traffic: C 98.8%, M 98.5%, <span class="pass">PASS</span></p>
+  <p class="cite">One recorded run (agent-eval/both-mcps.sh), Claude Sonnet 5.5 headless, 12 turns, $1.45. Users: k6 browsers with the debounce removed.</p>
+  <aside class="notes">
+    [~1.5 min] Now give the agent both MCPs and nothing else (its shell is limited to the bundler). With the
+    no-debounce flag on, k6 browsers play the users. The agent asks the PostHog MCP, through execute-sql, the
+    network-metrics query behind the cross-check: what did users' browsers send? 28 routes, the flag list on
+    top. It rewrites api.js to that mix, then the k6 MCP validates it (84 of 84 checks) and runs it (336 of
+    336). Click. Then score.js grades it against PostHog's user traffic, not anything the agent saw directly:
+    coverage 98.8%, mix 98.5%, pass. 12 turns, about a dollar and a half.
+    Be straight: one recorded run, not an eval. On a laptop the users are k6 browsers. If asked: in 3 earlier eval runs with
+    only the k6 MCP offered, the agent called it zero times and used shell k6. Why: its tools run a temp copy of the script, so relative imports and env vars break;
+    k6/bundle.js inlines both.
+  </aside>
+</section>
+
 <!-- 8 · Demo: baseline + flip -->
 <section>
   <div class="demo">
@@ -509,51 +537,6 @@ RESULT: <span class="fail">FAIL</span></pre>
     Click. The report names both sides: what the load test hammers that nobody uses, and what users hit
     that the load test never touches, like the persons and events queries. That's your next load test.
     Caveat: k6 browsers played the users, two minutes of traffic, demo stack.
-  </aside>
-</section>
-
-<!-- 9 · Agent repair -->
-<section>
-  <div class="demo" style="max-width:1300px">
-    <span class="tag" style="background:#555">FROM THE EVAL</span>
-    <p style="font-size:56px;font-weight:900;margin:16px 0 10px"><span class="ai">Claude</span> repairs the stale test</p>
-    <p style="font-family:Menlo,monospace;font-size:36px;line-height:1.5;margin:0">
-      read the score report<br>→ tally routes in the browser runs<br>→ edit api.js<br>→ k6 run + score.js<br>→ repeat until <span class="pass">green</span></p>
-    <p class="fallback" style="font-size:34px">Held-out runs: C 100%, M 90.6%, <span class="pass">PASS</span>. 28 tool calls, $1.08.</p>
-  </div>
-  <aside class="notes">
-    [~1 min] From the eval, not live: Claude Code (Sonnet 5.5, headless) gets the no-debounce score report and
-    the stale api.js. It read the report, tallied routes in the browser runs, edited api.js, ran k6 and
-    score.js itself, and repeated until green. Then we graded it on held-out browser runs it never saw:
-    C 100%, M 90.6%, pass. 28 tool calls, about a dollar. Note what it used: shell k6. Offered the k6 MCP in 3 runs, it called it zero times. Next: both MCPs.
-  </aside>
-</section>
-
-<!-- 11c · Both MCPs, one loop -->
-<section>
-  <p class="kicker">Both MCPs, one loop</p>
-  <h2 style="margin-bottom:36px"><span class="ph">PostHog</span> tells the agent what users do.<br><span class="k6">k6</span> makes the test match.</h2>
-  <div class="loop">
-    <div class="card" style="border-top:8px solid var(--hot)"><p class="ph">PostHog MCP</p><code>execute-sql</code><p class="dim">what users' browsers sent: 28 routes</p></div>
-    <span>→</span>
-    <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>edit api.js</code><p class="dim">match the mix</p></div>
-    <span>→</span>
-    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>validate_script</code><p class="dim">valid, 84/84 checks</p></div>
-    <span>→</span>
-    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>run_script</code><p class="dim">336/336 checks</p></div>
-  </div>
-  <p class="fragment" style="font-size:52px;font-weight:900;margin:44px 0 0">Graded against <span class="ph">PostHog</span>'s user traffic: C 98.8%, M 98.5%, <span class="pass">PASS</span></p>
-  <p class="cite">One recorded run (agent-eval/both-mcps.sh), Claude Sonnet 5.5 headless, 12 turns, $1.45. Users: k6 browsers with the debounce removed.</p>
-  <aside class="notes">
-    [~1.5 min] Now give the agent both MCPs and nothing else (its shell is limited to the bundler). With the
-    no-debounce flag on, k6 browsers play the users. The agent asks the PostHog MCP, through execute-sql, the
-    same network-metrics query we've been using: what did users' browsers send? 28 routes, the flag list on
-    top. It rewrites api.js to that mix, then the k6 MCP validates it (84 of 84 checks) and runs it (336 of
-    336). Click. Then score.js grades it against PostHog's user traffic, not anything the agent saw directly:
-    coverage 98.8%, mix 98.5%, pass. 12 turns, about a dollar and a half.
-    Be straight: one recorded run, not an eval. On a laptop the users are k6 browsers. If asked why the earlier runs
-    skipped the k6 MCP: its tools run a temp copy of the script, so relative imports and env vars break;
-    k6/bundle.js inlines both.
   </aside>
 </section>
 
