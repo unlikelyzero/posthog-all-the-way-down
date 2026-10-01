@@ -109,6 +109,14 @@
   .clip.no-debounce .clip-hud b { color: var(--fail); }
   .clip.empty img { visibility: hidden; }
 
+  .loop { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 18px; align-items: stretch; }
+  .loop > span { align-self: center; font-size: 56px; font-weight: 900; color: var(--dim); }
+  .loop .card { padding: 22px 24px; }
+  .loop .card p { margin: 0; font-size: 30px; }
+  .loop .card p:first-child { font-size: 34px; margin-bottom: 8px; }
+  .loop .card code { font-size: 28px; }
+  .loop .card p.dim { margin-top: 10px; font-size: 26px; }
+
   /* Subtitle face: pops in happy, then frowns when the "out of date" line appears */
   .face { display: inline-block; height: 0.9em; width: 0.9em; vertical-align: -0.1em; margin-left: 0.15em; transform: scale(0); }
   .face .head { fill: var(--pass); transition: fill .6s ease .15s; }
@@ -519,33 +527,9 @@ RESULT: <span class="fail">FAIL</span></pre>
   </aside>
 </section>
 
-<!-- 11 · Evaluating the agent: results -->
-<section>
-  <p class="kicker">What we got so far</p>
-  <h2>Is the MCP bolted on?</h2>
-  <table>
-    <tr><th>Condition</th><th>Trials</th><th>Passed on held-out runs</th><th>k6 MCP tool calls</th></tr>
-    <tr><td class="ai">k6 MCP offered</td><td>3</td><td>2</td><td><strong>0</strong></td></tr>
-    <tr><td class="dim">without</td><td>1</td><td>1</td><td>n/a</td></tr>
-  </table>
-  <p class="fragment" style="font-size:48px;font-weight:800;margin-top:36px">Offered the k6 MCP, the agent never called it.</p>
-  <p class="fragment" style="font-size:34px">It already knew k6 and had the k6 CLI. The one failure was our harness blocking its helper scripts, not a wrong fix.</p>
-  <p class="fragment" style="font-size:40px;font-weight:800">n = 4, one scenario. An anecdote with a table, not a result.</p>
-  <aside class="notes">
-    [~1.5 min] Real numbers, repair-no-debounce only. With the k6 MCP offered: 3 trials, 2 passed on
-    held-out runs (C 100%, M 90.6% and 89.2%). Without: 1 trial, passed (C 100%, M 97.0%).
-    Click. The finding: the MCP was connected and its tools were offered every time, and the agent called
-    it zero times. It used shell k6, which the prompt also mentions.
-    Click. The failure: our tool allowlist blocked the node scripts it wrote to count routes, so it gave up
-    before editing. That's a harness bug, now fixed, not the agent getting k6 wrong.
-    Click. Four trials. Don't draw a conclusion; the question for the room is when an agent reaches for
-    an MCP at all if it already knows the tool.
-  </aside>
-</section>
-
 <!-- 11b · The k6 MCP, used -->
 <section>
-  <p class="kicker">Why the agent skipped it</p>
+  <p class="kicker">First, make the k6 MCP usable</p>
   <h2 style="margin-bottom:24px">The <span class="k6">k6 MCP</span> runs a copy of your script</h2>
   <div class="cols" style="gap:40px">
 <pre class="term" style="font-size:24px;padding:24px 28px"><span class="dim"># api.js as written: relative imports</span>
@@ -561,23 +545,42 @@ run_script       <span class="pass">success</span>, 159/159 checks
       <p style="font-size:36px">Bundle it, and Claude + the <span class="k6">k6 MCP</span> validates and runs it against <span class="ph">PostHog</span>.</p>
     </div>
   </div>
-  <div class="fragment" style="margin-top:26px">
-    <p style="font-size:38px;font-weight:800;margin:0 0 10px">Both MCPs, one loop: <span class="ph">PostHog MCP</span> <code>execute-sql</code> → edit api.js → <span class="k6">k6 MCP</span> <code>validate_script</code> → <code>run_script</code></p>
-    <p style="font-size:34px;margin:0">Graded against <span class="ph">PostHog</span>'s user traffic: C 98.8%, M 98.5%, <span class="pass">PASS</span>. 12 turns, $1.45.</p>
-  </div>
   <aside class="notes">
-    [~1 min] Why did the agent never call the k6 MCP? We tried it directly. validate_script and run_script
+    [~1 min] In our first agent runs, offered the k6 MCP, the agent called it zero times. Why? We tried it directly. validate_script and run_script
     copy the script to a temp file, so our api.js, which imports ./auth.js and ./route.js, fails before it
     loads. And there's no way to pass env vars, so it can't log in. With the CLI right there, the agent took
     the path that worked. Bundle the script into one file with the stack URL baked in, and the k6 MCP
     validates it (53 of 53 checks) and runs it (159 of 159 checks, 0% failed requests). Recorded run, Claude
     Sonnet 5.5 headless, k6 MCP only. It took under 3 minutes, so it's not live. Note: run_script used its
     own 1 VU / 30 s config rather than the script's 3 VUs.
-    Click. Then both MCPs in one loop (agent-eval/both-mcps.sh, one recorded run). With the no-debounce flag on,
-    k6 browsers played the users. The agent ran the network-metrics HogQL through the PostHog MCP's execute-sql,
-    rewrote api.js to that mix, then validate_script (84/84 checks) and run_script (336/336 checks) through the
-    k6 MCP. Graded by score.js against PostHog's user traffic: C 98.8%, M 98.5%, pass. 12 turns, $1.45. One
-    run, not an eval.
+    Next slide: what happens when the agent has both MCPs.
+  </aside>
+</section>
+
+<!-- 11c · Both MCPs, one loop -->
+<section>
+  <p class="kicker">Both MCPs, one loop</p>
+  <h2 style="margin-bottom:36px"><span class="ph">PostHog</span> tells the agent what users do.<br><span class="k6">k6</span> makes the test match.</h2>
+  <div class="loop">
+    <div class="card" style="border-top:8px solid var(--hot)"><p class="ph">PostHog MCP</p><code>execute-sql</code><p class="dim">what users' browsers sent: 28 routes</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>edit api.js</code><p class="dim">match the mix</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>validate_script</code><p class="dim">valid, 84/84 checks</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>run_script</code><p class="dim">336/336 checks</p></div>
+  </div>
+  <p class="fragment" style="font-size:52px;font-weight:900;margin:44px 0 0">Graded against <span class="ph">PostHog</span>'s user traffic: C 98.8%, M 98.5%, <span class="pass">PASS</span></p>
+  <p class="cite">One recorded run (agent-eval/both-mcps.sh), Claude Sonnet 5.5 headless, 12 turns, $1.45. Users: k6 browsers with the debounce removed.</p>
+  <aside class="notes">
+    [~1.5 min] Now give the agent both MCPs and nothing else (its shell is limited to the bundler). With the
+    no-debounce flag on, k6 browsers play the users. The agent asks the PostHog MCP, through execute-sql, the
+    same network-metrics query we've been using: what did users' browsers send? 28 routes, the flag list on
+    top. It rewrites api.js to that mix, then the k6 MCP validates it (84 of 84 checks) and runs it (336 of
+    336). Click. Then score.js grades it against PostHog's user traffic, not anything the agent saw directly:
+    coverage 98.8%, mix 98.5%, pass. 12 turns, about a dollar and a half.
+    Be straight: one recorded run, not an eval. On a laptop the users are k6 browsers. The earlier eval, before
+    the bundling fix, had the k6 MCP offered and never called.
   </aside>
 </section>
 
