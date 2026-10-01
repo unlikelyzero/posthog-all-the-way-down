@@ -365,6 +365,37 @@ export default async function () {
   </aside>
 </section>
 
+<!-- 5b · Why not just run browsers? -->
+<section>
+  <div class="kicker">The obvious fix</div>
+  <h2>Why not just run thousands of <span class="k6">k6 browsers</span>?</h2>
+  <div class="cols" style="margin-top:10px">
+    <div class="card">
+      <p style="margin:0" class="k6">Protocol VU</p>
+      <p class="big" style="margin:10px 0 0">1.7 MB</p>
+      <p class="dim" style="margin:0">0.1 CPU-seconds per journey</p>
+    </div>
+    <div class="card">
+      <p style="margin:0" class="fail">Browser VU (real Chromium)</p>
+      <p class="big" style="margin:10px 0 0">1.55 GB</p>
+      <p class="dim" style="margin:0">11 CPU-seconds per journey</p>
+    </div>
+  </div>
+  <p class="fragment" style="font-size:52px;font-weight:900;margin:40px 0 10px">~900× the memory. ~100× the CPU. Same journey.</p>
+  <p class="fragment" style="font-size:40px;margin:0">1,000 browser VUs ≈ <b>1.5 TB of RAM</b>. So load tests stay protocol, and protocol tests drift.</p>
+  <p class="cite">Measured here: same journey, k6 v2.3, peak memory of k6 + Chromium, 3 runs each.
+    Grafana: protocol VUs use ~1–5 MB (<em>Running large tests</em>); Grafana Cloud bills browser VUs at 10× for their resource use.</p>
+  <aside class="notes">
+    [30 s] The obvious question: if the browser is the truth, why not load test with browsers? Because a
+    k6 browser VU is a real Chromium. Measured on this laptop, running the exact same journey: a protocol
+    VU peaks at 1.7 MB, a browser VU at 1.55 GB. About 900 times the memory, about 100 times the CPU.
+    A thousand browser VUs is a terabyte and a half of RAM. Grafana's own guidance is the hybrid: mostly
+    protocol VUs, a handful of browser VUs. So the load stays protocol, and protocol tests drift.
+    Sources: grafana.com/docs/k6/latest/testing-guides/running-large-tests/ (~1-5 MB per protocol VU);
+    grafana.com/docs/grafana-cloud/testing/k6/author-run/vu-hours/ (browser VUs billed at 10x).
+  </aside>
+</section>
+
 <!-- 6 · The idea: reference journey -->
 <section>
   <p class="kicker">The idea, part 1</p>
