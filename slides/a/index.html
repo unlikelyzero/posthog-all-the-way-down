@@ -523,6 +523,36 @@ page.on('request', (req) => {
   </aside>
 </section>
 
+<!-- 8e · My clicks, as a load test -->
+<section>
+  <p class="kicker">Then let the agent write the test from it</p>
+  <h2 style="margin-bottom:28px">My clicks, as a <span class="k6">k6</span> load test</h2>
+  <div class="loop" style="grid-template-columns: 1fr auto 1fr auto 1fr">
+    <div class="card" style="border-top:8px solid var(--hot)"><p class="ph">PostHog MCP</p><code>execute-sql</code><p class="dim">my session: 21 calls, 17 routes</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>k6/session.js</code><p class="dim">same routes, same order, 3 VUs</p></div>
+    <span>→</span>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 run</p><code>228/228 checks</code><p class="dim">0% failed requests</p></div>
+  </div>
+  <table class="fragment" style="margin-top:34px;font-size:34px">
+    <tr><th>Scored against my session</th><th>Coverage</th><th>Mix</th><th>Stale</th></tr>
+    <tr><td>The stage load test</td><td class="fail">66.7%</td><td class="fail">59.7%</td><td class="fail">35.8%</td></tr>
+    <tr><td>Generated from my clicks</td><td>90.5%*</td><td class="pass">90.5%</td><td class="pass">0%</td></tr>
+  </table>
+  <p class="cite" style="margin-top:14px">* The only routes missing are my two sign-in calls; the test signs in once in setup(). One recorded run, Claude Sonnet 5.5, 20 turns, $1.07.</p>
+  <aside class="notes">
+    [~1 min] Then the obvious next step: turn my clicks into the load test. An agent with the PostHog MCP pulled
+    my session's network metrics (21 calls, 17 routes) and wrote k6/session.js from them, following our
+    api.js conventions: login in setup, 3 VUs, checks, sleeps, real query bodies. It runs clean: 228 of 228
+    checks, no failed requests.
+    Click. Scored against my session: the stage test fails all three gates; the generated one passes Mix and
+    Stale. Coverage is 90.5%, and the only missing routes are my two sign-in calls, because a load test logs in
+    once in setup, not on every page.
+    Honest notes: one recorded run. The agent couldn't bake the login into a bundle for the k6 MCP, so the
+    run was the k6 CLI, not the MCP's run_script.
+  </aside>
+</section>
+
 <!-- 13 · Takeaways + thesis -->
 <section>
   <p class="kicker">Three things to take home</p>
