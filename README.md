@@ -6,7 +6,8 @@
 A protocol load test is a cached model of browser behavior. This project keeps comparing
 a k6 protocol test with the traffic a real browser (k6 browser) generates against
 self-hosted PostHog. It cross-checks against PostHog's own network metrics and fails when
-a frontend change makes the load test stale. Claude Code, with the Grafana k6 MCP server,
+a frontend change makes the load test stale. In production, those metrics record what real users'
+browsers send, so they can replace the k6 browser as the reference (`--reference posthog`). Claude Code, with the Grafana k6 MCP server,
 then repairs the test, and the agent is evaluated too.
 
 **Status:** code written; not yet run against a live PostHog. See DESIGN.md §9 for what is verified.
@@ -51,6 +52,7 @@ The seeded drifts fail their intended gates: no-debounce fails M only (C 0.977, 
 (0.589) and the report names `GET /api/projects/:id/feature_flags/:id/activity/`.
 `./demo.sh baseline|no-debounce|n-plus-one|repaired` runs a stage live and falls back to seeded offline fixtures
 (`eval/fixtures.js`) if the stack fails or takes over 60 s; `./demo.sh check` asserts the offline pass/fail pattern.
+`./demo.sh users [15m]` scores the stage protocol run against every session PostHog recorded in the window.
 `agent-eval/run.sh` runs the agent eval; it needs `mcp-k6` (`brew install mcp-k6` from the `grafana/grafana` tap).
 
 - [DESIGN.md](DESIGN.md): the build spec. Start with section 9, the verification checklist.

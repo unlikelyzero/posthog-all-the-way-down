@@ -22,7 +22,7 @@ Do that section first; it decides whether the rest works as written.
                  └──────▲───────────────────────────┬──────────────────────────────┘
                         │ UI clicks                 │ posthog-js network metrics
    k6/journey.js ───────┘                           ▼
-   (k6 browser)                          posthog.metrics  (CROSS-CHECK only)
+   (k6 browser)                          posthog.metrics  (cross-check; in production, the reference)
         │ page.on('request')                        │
         ▼                                           │
    browser.json ──► REFERENCE  ─────┐               │
@@ -39,6 +39,7 @@ Do that section first; it decides whether the rest works as written.
 |---|---|---|
 | Ground truth (gates the build) | k6 browser `page.on('request')` | Immediate, deterministic, sees request bodies. No ingestion lag and no alpha product on the stage-critical path. |
 | Cross-check ("PostHog saw it too") | PostHog `posthog.metrics` (posthog-js network metrics) | Shown next to the score. Never gates the result: if ingestion is late, the demo still works. |
+| Production reference | The same metrics, every session in a time window (`score.js --reference posthog --since 60m`, §5.3) | In production there are real users, and posthog-js already records every API call their browsers make. Same gates. The k6 browser plays the user only where there are none yet: on a PR, and on stage. |
 | Drift switch | PostHog feature flags (in the project PostHog uses for its own flags) | Flip live in the PostHog UI, with no rebuild. |
 | Results store | PostHog events (`meetup_eval_result`) | Eval history on a PostHog dashboard, completing the recursion joke. |
 | Repair | Claude Code + Grafana k6 MCP | `get_documentation` → edit → `validate_script` → `run_script`. |
@@ -227,6 +228,12 @@ Fallback if the run-id attribute can't be added: filter by a tight time window a
 run, taken from the journey's start and end timestamps. Batches are timestamped when
 they're sent, so pad the window by 15 s.
 
+**Users reference.** `score.js --reference posthog --since 60m` runs the same query with the run-id filter
+replaced by `m.timestamp >= now() - toIntervalMinute({minutes})`, so it counts every session posthog-js
+recorded, and scores the protocol run against that instead of browser files. Protocol keys drop `#kind`
+to match. `./demo.sh users [15m]` scores the stage protocol run this way. On a laptop the only users are
+k6 browsers, so this shows the mechanism, not a production mix.
+
 ### 5.4 Send results to PostHog
 After scoring, `POST /i/v0/e/` with the project API key:
 - event `meetup_eval_result`
@@ -364,4 +371,4 @@ Each item says how to confirm it and what to do if it fails.
 
 - Payload fidelity beyond `#kind`, and latency/SLO fidelity. Mention them as limits on stage.
 - Replay-to-test generation, PostHog self-driving, and LLM-judge graders.
-- Production RUM mixes. The reference is a *journey contract*, not a model of the user population. Say so.
+- Per-page scoping of the users reference. Network metrics carry no page attribute, so it covers every page users visit, including ones the journey never meant to load-test. Say so.

@@ -5,6 +5,7 @@
 #   ./demo.sh offline <baseline|no-debounce|n-plus-one|repaired>
 #   ./demo.sh check                                           # offline fixtures, asserts the stage pattern
 #   ./demo.sh prepare                                         # T-30 min: record the stale protocol run once
+#   ./demo.sh users [15m]                                     # score it against what PostHog saw users send
 set -u
 cd "$(dirname "$0")"
 # shellcheck disable=SC1091
@@ -59,6 +60,9 @@ case "${1:-}" in
       *) echo "usage: $0 offline <baseline|no-debounce|n-plus-one|repaired>" >&2; exit 2 ;;
     esac ;;
   check) node eval/fixtures.js --check ;;
+  users)
+    [ -s "$PROTOCOL" ] || { echo "no $PROTOCOL: run ./demo.sh prepare first" >&2; exit 2; }
+    node eval/score.js --reference posthog --since "${2:-15m}" --protocol "$PROTOCOL" --scenario users ;;
   prepare) mkdir -p out && RUN_ID="stage-$(date +%s)" k6 run -q --out json="$PROTOCOL" k6/api.js && echo "saved $PROTOCOL" ;;
-  *) echo "usage: $0 <baseline|no-debounce|n-plus-one|repaired|offline <scenario>|check|prepare>" >&2; exit 2 ;;
+  *) echo "usage: $0 <baseline|no-debounce|n-plus-one|repaired|offline <scenario>|users [window]|check|prepare>" >&2; exit 2 ;;
 esac
