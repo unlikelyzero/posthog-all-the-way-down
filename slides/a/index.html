@@ -493,6 +493,36 @@ page.on('request', (req) => {
   </aside>
 </section>
 
+<!-- 8d · Me, clicking around -->
+<section>
+  <p class="kicker">Recorded on this laptop: me, clicking around</p>
+  <h2 style="margin-bottom:24px">How do I compare to the load test?</h2>
+  <div class="cols" style="grid-template-columns: 1.15fr 1fr;gap:36px;align-items:start">
+    <video src="../assets/me.mov" data-autoplay muted loop playsinline style="width:100%;border-radius:14px;border:2px solid #333;display:block"></video>
+    <div>
+      <div class="tiles" style="grid-template-columns:repeat(3,1fr);gap:16px">
+        <div class="card" style="padding:16px 18px"><p class="dim">Coverage</p><p class="stat fail" style="font-size:56px">66.7%</p></div>
+        <div class="card" style="padding:16px 18px"><p class="dim">Mix</p><p class="stat fail" style="font-size:56px">59.7%</p></div>
+        <div class="card" style="padding:16px 18px"><p class="dim">Stale</p><p class="stat fail" style="font-size:56px">35.8%</p></div>
+      </div>
+      <div class="card" style="border-top:8px solid var(--hot);margin-top:18px;padding:16px 22px"><p class="ph" style="margin:0 0 6px;font-size:30px">I hit, the test never does</p>
+        <p class="mono" style="font-size:24px">ActorsQuery · customer_profile_configs · column_configurations · integrations</p></div>
+      <div class="card" style="border-top:8px solid var(--k6);margin-top:18px;padding:16px 22px"><p class="k6" style="margin:0 0 6px;font-size:30px">The test hammers, I never did</p>
+        <p class="mono" style="font-size:24px">feature_flags/ · flag detail · dashboards · insights · cohorts</p></div>
+    </div>
+  </div>
+  <p class="cite" style="margin-top:16px"><code>./demo.sh users 3m</code>: 21 API calls across 17 routes from my browser, sign-in included. All three gates fail.</p>
+  <aside class="notes">
+    [~1 min] Same idea with a real human: me. I signed in to the demo PostHog and clicked around: the home page,
+    then Persons. PostHog recorded every API call my browser made. Then ./demo.sh users 3m scored our load test
+    against that: Coverage 66.7%, Mix 59.7%, Stale 35.8%. All three fail. I hit the persons queries the test
+    never touches; the test hammers flags and dashboards I never opened.
+    Live option if there's time: sign in beforehand, click around Persons and Insights, wait 15 seconds, run
+    ./demo.sh users 2m. Close other PostHog tabs first; the window counts every browser.
+    The recording is trimmed to the in-app part; the numbers include the sign-in calls.
+  </aside>
+</section>
+
 <!-- 13 · Takeaways + thesis -->
 <section>
   <p class="kicker">Three things to take home</p>
