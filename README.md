@@ -10,7 +10,7 @@ a frontend change makes the load test stale. In production, those metrics record
 browsers send, so they can replace the k6 browser as the reference (`--reference posthog`). Claude Code, with the Grafana k6 MCP server,
 then repairs the test, and the agent is evaluated too.
 
-**Status:** code written; not yet run against a live PostHog. See DESIGN.md §9 for what is verified.
+**Status:** runs end to end against a live self-hosted PostHog. DESIGN.md §9 lists what is verified.
 
 ## Quickstart
 
