@@ -543,6 +543,38 @@ RESULT: <span class="fail">FAIL</span></pre>
   </aside>
 </section>
 
+<!-- 11b · The k6 MCP, used -->
+<section>
+  <p class="kicker">Why the agent skipped it</p>
+  <h2 style="margin-bottom:24px">The <span class="k6">k6 MCP</span> runs a copy of your script</h2>
+  <div class="cols" style="gap:40px">
+<pre class="term" style="font-size:24px;padding:24px 28px"><span class="dim"># api.js as written: relative imports</span>
+validate_script  <span class="fail">invalid</span>, exit 107
+  The moduleSpecifier "./auth.js"
+  couldn't be found
+<span class="dim"># bundled into one file (k6/bundle.js)</span>
+validate_script  <span class="pass">valid</span>, 53/53 checks
+run_script       <span class="pass">success</span>, 159/159 checks
+                 http_req_failed 0.00%</pre>
+    <div>
+      <p style="font-size:36px;margin-top:0">The tools copy the script to a temp file, so <code>./auth.js</code> can't resolve, and they can't pass env vars.</p>
+      <p style="font-size:36px">Bundle it, and Claude + the <span class="k6">k6 MCP</span> validates and runs it against <span class="ph">PostHog</span>.</p>
+    </div>
+  </div>
+  <p class="fragment" style="font-size:40px;font-weight:800;margin-top:30px">Next: <span class="ph">PostHog MCP</span> pulls what users send → <span class="k6">k6 MCP</span> fixes, validates and runs the test until the gates pass.</p>
+  <aside class="notes">
+    [~1 min] Why did the agent never call the k6 MCP? We tried it directly. validate_script and run_script
+    copy the script to a temp file, so our api.js, which imports ./auth.js and ./route.js, fails before it
+    loads. And there's no way to pass env vars, so it can't log in. With the CLI right there, the agent took
+    the path that worked. Bundle the script into one file with the stack URL baked in, and the k6 MCP
+    validates it (53 of 53 checks) and runs it (159 of 159 checks, 0% failed requests). Recorded run, Claude
+    Sonnet 5.5 headless, k6 MCP only. It took under 3 minutes, so it's not live. Note: run_script used its
+    own 1 VU / 30 s config rather than the script's 3 VUs.
+    Click. Next: put both MCPs in one loop. The agent asks the PostHog MCP what users' browsers actually
+    send, then uses the k6 MCP to fix, validate and run the protocol test until the gates pass. Not built yet.
+  </aside>
+</section>
+
 <!-- 13 · Takeaways + thesis -->
 <section>
   <ol style="font-size:46px;font-weight:700">
