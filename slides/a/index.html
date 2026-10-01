@@ -224,12 +224,12 @@
         <text x="800" y="125" font-size="36" font-weight="900" fill="#0a0a0f">PostHog Docker container</text>
         <text x="800" y="162" font-size="28" font-weight="700" fill="#0a0a0f">system under test</text></g>
       <g class="fragment" data-fragment-index="3"><rect x="1109" y="193" width="320" height="100" rx="18" fill="#16161f" stroke="#7ab8ff" stroke-width="4"/>
-        <text x="1269" y="255" font-size="38" font-weight="900" fill="#7ab8ff">k6 browser</text></g>
+        <text x="1269" y="236" font-size="38" font-weight="900" fill="#7ab8ff">Grafana k6</text><text x="1269" y="274" font-size="28" font-weight="700" fill="#7ab8ff">browser</text></g>
       <g class="fragment" data-fragment-index="5"><rect x="1225" y="447" width="320" height="100" rx="18" fill="#ffd23f"/>
         <text x="1385" y="492" font-size="38" font-weight="900" fill="#0a0a0f">PostHog</text>
         <text x="1385" y="529" font-size="28" font-weight="700" fill="#0a0a0f">sees the traffic too</text></g>
       <g class="fragment" data-fragment-index="7"><rect x="900" y="650" width="320" height="100" rx="18" fill="#16161f" stroke="#7ab8ff" stroke-width="4"/>
-        <text x="1060" y="712" font-size="36" font-weight="900" fill="#7ab8ff">k6 protocol test</text></g>
+        <text x="1060" y="693" font-size="38" font-weight="900" fill="#7ab8ff">Grafana k6</text><text x="1060" y="731" font-size="28" font-weight="700" fill="#7ab8ff">protocol test</text></g>
       <g class="fragment" data-fragment-index="9"><rect x="380" y="650" width="320" height="100" rx="18" fill="#ffd23f"/>
         <text x="540" y="695" font-size="38" font-weight="900" fill="#0a0a0f">PostHog</text>
         <text x="540" y="732" font-size="28" font-weight="700" fill="#0a0a0f">feature flags</text></g>
@@ -300,7 +300,7 @@
       </div>
       <div class="ba-stats">
         <div><span>Browser journey</span><b>4</b></div>
-        <div><span><span class="k6">k6</span> load test</span><b class="k6">4</b></div>
+        <div><span><span class="k6">Grafana k6</span> load test</span><b class="k6">4</b></div>
       </div>
     </div>
     <div class="ba-col after fragment" data-fragment-index="1">
@@ -311,7 +311,7 @@
       </div>
       <div class="ba-stats fragment" data-fragment-index="2">
         <div><span>Browser journey</span><b class="fail">20–26</b></div>
-        <div><span><span class="k6">k6</span> load test</span><b class="k6">4 <em class="pass">✓ still passes</em></b></div>
+        <div><span><span class="k6">Grafana k6</span> load test</span><b class="k6">4 <em class="pass">✓ still passes</em></b></div>
       </div>
     </div>
   </div>
@@ -345,7 +345,7 @@
 <!-- 5b · Why not just run browsers? -->
 <section>
   <div class="kicker">The obvious fix</div>
-  <h2>Why not just run thousands of <span class="k6">k6 browsers</span>?</h2>
+  <h2>Why not just run thousands of <span class="k6">Grafana k6 browsers</span>?</h2>
   <div class="cols" style="margin-top:10px">
     <div class="card">
       <p style="margin:0" class="k6">Protocol VU</p>
@@ -360,7 +360,7 @@
   </div>
   <p class="fragment" style="font-size:52px;font-weight:900;margin:40px 0 10px">~900× the memory. ~100× the CPU. Same journey.</p>
   <p class="fragment" style="font-size:40px;margin:0">1,000 browser VUs ≈ <b>1.5 TB of RAM</b>. So load tests stay protocol, and protocol tests drift.</p>
-  <p class="cite">Measured here: same journey, k6 v2.3, peak memory of k6 + Chromium, 3 runs each.
+  <p class="cite">Measured here: same journey, Grafana k6 v2.3, peak memory of Grafana k6 + Chromium, 3 runs each.
     Grafana: protocol VUs use ~1–5 MB (<em>Running large tests</em>); Grafana Cloud bills browser VUs at 10× for their resource use.</p>
   <aside class="notes">
     [30 s] The obvious question: if the browser is the truth, why not load test with browsers? Because a
@@ -438,12 +438,12 @@ page.on('request', (req) => {
     <span>→</span>
     <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>edit api.js</code><p class="dim">match the mix</p></div>
     <span>→</span>
-    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>validate_script</code><p class="dim">valid, 84/84 checks</p></div>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">Grafana k6 MCP</p><code>validate_script</code><p class="dim">valid, 84/84 checks</p></div>
     <span>→</span>
-    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 MCP</p><code>run_script</code><p class="dim">336/336 checks</p></div>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">Grafana k6 MCP</p><code>run_script</code><p class="dim">336/336 checks</p></div>
   </div>
   <p class="fragment" style="font-size:52px;font-weight:900;margin:44px 0 0">Graded against <span class="ph">PostHog</span>'s user traffic: C 98.8%, M 98.5%, <span class="pass">PASS</span></p>
-  <p class="cite">One recorded run (agent-eval/both-mcps.sh), Claude Sonnet 5.5 headless, 12 turns, $1.45. Users: k6 browsers with the debounce removed.</p>
+  <p class="cite">One recorded run (agent-eval/both-mcps.sh), Claude Sonnet 5.5 headless, 12 turns, $1.45. Users: Grafana k6 browsers with the debounce removed.</p>
   <aside class="notes">
     [~1.5 min] Now give the agent both MCPs and nothing else (its shell is limited to the bundler). With the
     no-debounce flag on, k6 browsers play the users. The agent asks the PostHog MCP, through execute-sql, the
@@ -464,7 +464,7 @@ page.on('request', (req) => {
   <div class="srcflow">
     <span class="chip" style="border-color:var(--hot)"><span class="ph">PostHog</span> network metrics: every API call users' browsers made</span>
     <b>vs</b>
-    <span class="chip" style="border-color:var(--k6)"><span class="k6">k6</span> load test: what we replay</span>
+    <span class="chip" style="border-color:var(--k6)"><span class="k6">Grafana k6</span> load test: what we replay</span>
     <b>→</b>
     <span class="chip">score.js: Coverage, Mix, Stale</span>
   </div>
@@ -479,7 +479,7 @@ page.on('request', (req) => {
     <div class="card" style="border-top:8px solid var(--hot)"><p class="ph" style="margin:0 0 8px">Users actually hit</p>
       <p class="mono">ActorsQuery · EventsQuery · hog_functions · cohorts/ · customer_profile_configs</p></div>
   </div>
-  <p class="cite" style="margin-top:16px">Users here: k6 browsers on persons, insights, activity and cohorts, 2 minutes on the demo stack.</p>
+  <p class="cite" style="margin-top:16px">Users here: Grafana k6 browsers on persons, insights, activity and cohorts, 2 minutes on the demo stack.</p>
   <aside class="notes">
     [~1 min] On a PR a k6 browser plays the user. In production you have real users, and PostHog already
     records every call their browsers make. Point the same scorer at that traffic (score.js --reference
@@ -526,13 +526,13 @@ page.on('request', (req) => {
 <!-- 8e · My clicks, as a load test -->
 <section>
   <p class="kicker">Then let the agent write the test from it</p>
-  <h2 style="margin-bottom:28px">My clicks, as a <span class="k6">k6</span> load test</h2>
+  <h2 style="margin-bottom:28px">My clicks, as a <span class="k6">Grafana k6</span> load test</h2>
   <div class="loop" style="grid-template-columns: 1fr auto 1fr auto 1fr">
     <div class="card" style="border-top:8px solid var(--hot)"><p class="ph">PostHog MCP</p><code>execute-sql</code><p class="dim">my session: 21 calls, 17 routes</p></div>
     <span>→</span>
     <div class="card" style="border-top:8px solid var(--ai)"><p class="ai">Claude</p><code>k6/session.js</code><p class="dim">same routes, same order, 3 VUs</p></div>
     <span>→</span>
-    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">k6 run</p><code>228/228 checks</code><p class="dim">0% failed requests</p></div>
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6">Grafana k6</p><code>228/228 checks</code><p class="dim">0% failed requests</p></div>
   </div>
   <table class="fragment" style="margin-top:34px;font-size:34px">
     <tr><th>Scored against my session</th><th>Coverage</th><th>Mix</th><th>Stale</th></tr>
@@ -565,7 +565,7 @@ page.on('request', (req) => {
     <div class="card fragment" style="border-top:8px solid var(--hot)">
       <p class="n ph">2</p>
       <p class="claim">Score it against what users actually send.</p>
-      <p class="dim">A <span class="k6">k6</span> browser on a PR, <span class="ph">PostHog</span> in production. The same gates catch drift and tests in the wrong part of the app.</p>
+      <p class="dim">A <span class="k6">Grafana k6</span> browser on a PR, <span class="ph">PostHog</span> in production. The same gates catch drift and tests in the wrong part of the app.</p>
     </div>
     <div class="card fragment" style="border-top:8px solid var(--ai)">
       <p class="n ai">3</p>
