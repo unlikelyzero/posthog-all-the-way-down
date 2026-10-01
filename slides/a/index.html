@@ -117,6 +117,11 @@
   .loop .card code { font-size: 28px; }
   .loop .card p.dim { margin-top: 10px; font-size: 26px; }
 
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .tiles .card p { margin: 0; font-size: 30px; }
+  .tiles .card p.stat { font-size: 96px; font-weight: 900; line-height: 1.1; }
+  .mono { font-family: "JetBrains Mono", Menlo, monospace; font-size: 28px; margin: 0; line-height: 1.5; }
+
   /* Subtitle face: pops in happy, then frowns when the "out of date" line appears */
   .face { display: inline-block; height: 0.9em; width: 0.9em; vertical-align: -0.1em; margin-left: 0.15em; transform: scale(0); }
   .face .head { fill: var(--pass); transition: fill .6s ease .15s; }
@@ -477,6 +482,33 @@ RESULT: <span class="fail">FAIL</span></pre>
     journey: ./demo.sh users 5m (needs ./demo.sh prepare beforehand). It should fail Mix like the browser did.
     Be straight about the caveat: on this laptop the only users are k6 browsers. And there's no per-page
     filter, so in production it also counts pages the load test never meant to cover.
+  </aside>
+</section>
+
+<!-- 8c · Are you testing where users are? -->
+<section>
+  <p class="kicker">Same gates, a different question</p>
+  <h2 style="margin-bottom:30px">Are you load-testing where your users are?</h2>
+  <div class="tiles">
+    <div class="card"><p class="dim">Coverage</p><p class="stat fail">89.9%</p><p>of user calls hit a route the test covers</p></div>
+    <div class="card"><p class="dim">Mix</p><p class="stat fail">57.3%</p><p>overlap in where the calls go</p></div>
+    <div class="card"><p class="dim">Stale</p><p class="stat fail">35.8%</p><p>of the test's calls go where users never went</p></div>
+  </div>
+  <div class="cols fragment" style="gap:40px;margin-top:30px">
+    <div class="card" style="border-top:8px solid var(--k6)"><p class="k6" style="margin:0 0 8px">The load test hammers</p>
+      <p class="mono">feature_flags/ · flag detail · dashboards/ · dashboard detail · insight_variables</p></div>
+    <div class="card" style="border-top:8px solid var(--hot)"><p class="ph" style="margin:0 0 8px">Users actually hit</p>
+      <p class="mono">ActorsQuery · EventsQuery · hog_functions · cohorts/ · customer_profile_configs</p></div>
+  </div>
+  <p class="cite" style="margin-top:20px">Stage protocol test vs <code>score.js --reference posthog --since 2m</code>, with k6 browsers as users on persons, insights, activity and cohorts. Demo stack.</p>
+  <aside class="notes">
+    [~1 min] Point the same scorer at all of PostHog's user traffic and it answers a second question: is the
+    load test even in the right part of the app? Here the users were on persons, insights, activity and
+    cohorts; our load test is flags and dashboards. Coverage 89.9%: shared app-shell calls carry most of it.
+    Mix 57%. And Stale: 35.8% of the load test's calls go to routes users never touched in that window.
+    Click. The report names both sides: what the load test hammers that nobody uses, and what users hit
+    that the load test never touches, like the persons and events queries. That's your next load test.
+    Caveat: k6 browsers played the users, two minutes of traffic, demo stack.
   </aside>
 </section>
 
