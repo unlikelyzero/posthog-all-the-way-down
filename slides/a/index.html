@@ -561,7 +561,10 @@ run_script       <span class="pass">success</span>, 159/159 checks
       <p style="font-size:36px">Bundle it, and Claude + the <span class="k6">k6 MCP</span> validates and runs it against <span class="ph">PostHog</span>.</p>
     </div>
   </div>
-  <p class="fragment" style="font-size:40px;font-weight:800;margin-top:30px">Next: <span class="ph">PostHog MCP</span> pulls what users send → <span class="k6">k6 MCP</span> fixes, validates and runs the test until the gates pass.</p>
+  <div class="fragment" style="margin-top:26px">
+    <p style="font-size:38px;font-weight:800;margin:0 0 10px">Both MCPs, one loop: <span class="ph">PostHog MCP</span> <code>execute-sql</code> → edit api.js → <span class="k6">k6 MCP</span> <code>validate_script</code> → <code>run_script</code></p>
+    <p style="font-size:34px;margin:0">Graded against <span class="ph">PostHog</span>'s user traffic: C 98.8%, M 98.5%, <span class="pass">PASS</span>. 12 turns, $1.45.</p>
+  </div>
   <aside class="notes">
     [~1 min] Why did the agent never call the k6 MCP? We tried it directly. validate_script and run_script
     copy the script to a temp file, so our api.js, which imports ./auth.js and ./route.js, fails before it
@@ -570,8 +573,11 @@ run_script       <span class="pass">success</span>, 159/159 checks
     validates it (53 of 53 checks) and runs it (159 of 159 checks, 0% failed requests). Recorded run, Claude
     Sonnet 5.5 headless, k6 MCP only. It took under 3 minutes, so it's not live. Note: run_script used its
     own 1 VU / 30 s config rather than the script's 3 VUs.
-    Click. Next: put both MCPs in one loop. The agent asks the PostHog MCP what users' browsers actually
-    send, then uses the k6 MCP to fix, validate and run the protocol test until the gates pass. Not built yet.
+    Click. Then both MCPs in one loop (agent-eval/both-mcps.sh, one recorded run). With the no-debounce flag on,
+    k6 browsers played the users. The agent ran the network-metrics HogQL through the PostHog MCP's execute-sql,
+    rewrote api.js to that mix, then validate_script (84/84 checks) and run_script (336/336 checks) through the
+    k6 MCP. Graded by score.js against PostHog's user traffic: C 98.8%, M 98.5%, pass. 12 turns, $1.45. One
+    run, not an eval.
   </aside>
 </section>
 
