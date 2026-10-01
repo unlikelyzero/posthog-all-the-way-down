@@ -91,17 +91,19 @@
   .k6rec-missing { height: 640px; display: none; align-items: center; justify-content: center; color: var(--dim); font-size: 34px; }
   .k6rec.empty img { display: none; }
   .k6rec.empty .k6rec-missing { display: flex; }
-  /* Hook: one PR, before and after. Each "after" cell draws a dashed left border; together they mark the PR. */
-  .drift { display: grid; grid-template-columns: 360px 560px 820px; column-gap: 40px; align-items: center; }
-  .drift > * { padding: 10px 0; }
-  .drift .after { border-left: 4px dashed #555; padding-left: 40px; align-self: stretch; display: flex; align-items: center; }
-  .drift-head { font-size: 38px; font-weight: 900; align-self: end; }
-  .drift-head small, .drift-label small { display: block; font-size: 24px; font-weight: 600; color: var(--dim); line-height: 1.25; }
-  .drift-head.after { display: block; }
-  .drift-label { font-size: 32px; font-weight: 800; text-align: right; line-height: 1.15; }
-  .drift-unit { font-size: 24px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); text-align: right; padding-top: 20px; }
-  .bar { display: flex; align-items: center; gap: 18px; font-size: 48px; font-weight: 900; }
-  .bar i { display: block; height: 60px; border-radius: 0 4px 4px 0; }
+  /* Hook: one PR, before and after, as two panels */
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+  .ba-col { padding: 0 0 0 0; }
+  .ba-col.after { border-left: 4px dashed #555; padding-left: 56px; }
+  .ba-head { font-size: 42px; font-weight: 900; margin-bottom: 16px; }
+  .ba-head small { display: block; font-size: 26px; font-weight: 600; color: var(--dim); }
+  .ba .clip { width: 100%; }
+  .ba .clip img { height: 230px; }
+  .ba-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 22px; }
+  .ba-stats > div { background: #16161f; border-radius: 14px; padding: 14px 20px; }
+  .ba-stats > div > span { display: block; white-space: nowrap; font-size: 26px; color: var(--dim); font-weight: 700; }
+  .ba-stats b { font-size: 72px; font-weight: 900; line-height: 1.1; }
+  .ba-stats em { font-style: normal; font-size: 28px; vertical-align: middle; }
   .clip { width: 470px; background: #16161f; border: 2px solid #333; border-radius: 12px; overflow: hidden; }
   .clip img { display: block; width: 100%; height: 250px; object-fit: cover; object-position: left top; background: #fff; }
   .clip-hud { display: flex; justify-content: space-between; padding: 8px 14px; font: 700 26px/1.2 "Inter", sans-serif; color: var(--dim); }
@@ -270,34 +272,31 @@
 <!-- 4 · Hook: one PR, before and after -->
 <section>
   <h2 style="margin-bottom:30px">The app changed. The load test didn't.</h2>
-  <div class="drift">
-    <div></div>
-    <div class="drift-head">Before the PR</div>
-    <div class="drift-head after fragment" data-fragment-index="1">After the PR<small>removes the 300 ms flag-search debounce, behind a <span class="ph">PostHog</span> feature flag</small></div>
-
-    <div class="drift-label">The app<small>typing "checkout" into flag search</small></div>
-    <div class="clip framerec" data-rec="search-debounced">
-      <img alt="Typing checkout into the flag search with the debounce: one list request after typing stops">
-      <div class="clip-hud"><span>debounced</span><span>list requests: <b class="calls">0</b></span></div>
+  <div class="ba">
+    <div class="ba-col">
+      <div class="ba-head">Before the PR<small>flag search, debounced</small></div>
+      <div class="clip framerec" data-rec="search-debounced">
+        <img alt="Typing checkout into the flag search with the debounce: one list request after typing stops">
+        <div class="clip-hud"><span>debounced</span><span>list requests: <b class="calls">0</b></span></div>
+      </div>
+      <div class="ba-stats">
+        <div><span>Browser journey</span><b>4</b></div>
+        <div><span><span class="k6">k6</span> load test</span><b class="k6">4</b></div>
+      </div>
     </div>
-    <div class="after"><div class="clip framerec no-debounce fragment" data-fragment-index="1" data-rec="search-no-debounce">
-      <img alt="Typing checkout with the debounce removed: a list request on every keystroke">
-      <div class="clip-hud"><span>no debounce</span><span>list requests: <b class="calls">0</b></span></div>
-    </div></div>
-
-    <div class="drift-unit">Flag-list API calls per journey</div>
-    <div></div>
-    <div class="after"></div>
-
-    <div class="drift-label">Browser journey<small>what a user's browser sends</small></div>
-    <div class="bar"><i style="width:80px;background:var(--fg)"></i>4</div>
-    <div class="after"><div class="bar fragment" data-fragment-index="2"><i style="width:520px;background:linear-gradient(90deg,var(--fail) 400px,rgba(255,92,92,.35) 400px)"></i><span class="fail">20–26</span></div></div>
-
-    <div class="drift-label"><span class="k6">k6</span> protocol load test<small>what we replay</small></div>
-    <div class="bar"><i style="width:80px;background:var(--k6)"></i>4</div>
-    <div class="after"><div class="bar fragment" data-fragment-index="2"><i style="width:80px;background:var(--k6)"></i>4 <span class="pass" style="font-size:34px">✓ still passes</span></div></div>
+    <div class="ba-col after fragment" data-fragment-index="1">
+      <div class="ba-head">After the PR<small>debounce removed, behind a <span class="ph">PostHog</span> feature flag</small></div>
+      <div class="clip framerec no-debounce" data-rec="search-no-debounce">
+        <img alt="Typing checkout with the debounce removed: a list request on every keystroke">
+        <div class="clip-hud"><span>no debounce</span><span>list requests: <b class="calls">0</b></span></div>
+      </div>
+      <div class="ba-stats fragment" data-fragment-index="2">
+        <div><span>Browser journey</span><b class="fail">20–26</b></div>
+        <div><span><span class="k6">k6</span> load test</span><b class="k6">4 <em class="pass">✓ still passes</em></b></div>
+      </div>
+    </div>
   </div>
-  <p class="cite" style="margin-top:16px">Measured on the demo stack. After the PR: 3 runs, 20 to 26 calls; the faded end of the bar is the spread.</p>
+  <p class="cite" style="margin-top:18px">Flag-list API calls per journey, measured on the demo stack (after the PR: 3 runs).</p>
   <aside class="notes">
     [~1:20 to 2:30] Left column, before the PR. Top: typing "checkout" into PostHog's flag search. The
     search is debounced, so it sends 1 list request after you stop typing. Below: one full journey makes 4
