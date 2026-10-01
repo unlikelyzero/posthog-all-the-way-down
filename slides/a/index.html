@@ -205,48 +205,24 @@
   </aside>
 </section>
 
-<!-- 2b · What Grafana k6 is -->
+<!-- 2b · Theme: two tools, one goal -->
 <section>
-  <div class="kicker">Thirty-second primer</div>
-  <h2>What is <span class="k6">Grafana k6</span>?</h2>
-  <p style="font-size:40px;margin:0 0 36px">Open-source load testing. Tests are JavaScript; the engine is Go. Each <b>virtual user (VU)</b> runs your script in a loop.</p>
-  <div class="cols primer">
-    <div class="card">
-      <p style="margin:0 0 16px"><b class="k6">Protocol VUs</b>: raw HTTP, cheap, thousands per machine</p>
-      <pre><code class="language-javascript" data-trim>
-import http from 'k6/http'
-import { check, sleep } from 'k6'
-
-export const options = { vus: 50, duration: '1m' }
-
-export default function () {
-  const res = http.get(`${BASE}/api/feature_flags/`)
-  check(res, { ok: (r) => r.status === 200 })
-  sleep(1)
-}
-      </code></pre>
+  <div class="kicker">Two tools, one goal: know your users</div>
+  <div class="cols" style="margin-top:20px">
+    <div class="card" style="border-top:8px solid var(--k6)">
+      <p style="font-size:56px;font-weight:900;line-height:1.15;margin:0 0 20px"><span class="k6">Grafana k6</span> makes load tests perfectly match your users.</p>
+      <p class="dim" style="margin:0">Browser tests for fidelity. Protocol tests for scale.</p>
     </div>
-    <div class="card">
-      <p style="margin:0 0 16px"><b class="k6">Browser VUs</b>: real Chromium, real clicks, expensive</p>
-      <pre><code class="language-javascript" data-trim>
-import { browser } from 'k6/browser'
-
-export default async function () {
-  const page = await browser.newPage()
-  await page.goto(`${BASE}/feature_flags`)
-  await page.locator('input').type('checkout')
-  await page.close()
-}
-      </code></pre>
+    <div class="card" style="border-top:8px solid var(--hot)">
+      <p style="font-size:56px;font-weight:900;line-height:1.15;margin:0 0 20px"><span class="ph">PostHog</span> makes sure you perfectly understand what your users are doing.</p>
+      <p class="dim" style="margin:0">Events, session replay, feature flags, network metrics.</p>
     </div>
   </div>
-  <p class="fragment" style="font-size:38px;margin-top:36px">Load tests run mostly protocol VUs. So someone has to <b>write down</b> what the browser sends.</p>
+  <p class="fragment" style="font-size:46px;font-weight:800;margin-top:50px">This talk: use the second to keep the first honest.</p>
   <aside class="notes">
-    [~1:00, 30 s] For anyone who hasn't used it: k6 is Grafana's open-source load tester. You write the test
-    in JavaScript and a Go engine runs it, each virtual user looping over your default function. Two kinds
-    of VU. Protocol VUs send raw HTTP: cheap, you can run thousands. Browser VUs drive a real Chromium:
-    faithful, but expensive. Click: so real load tests are mostly protocol VUs, which means someone
-    hand-wrote the list of requests the browser makes. Hold that thought.
+    [30 s] The two tools, one sentence each. k6 makes your load test match your users: browser tests for
+    fidelity, protocol tests for scale. PostHog makes sure you understand what your users are actually
+    doing. Click: this talk uses the second to keep the first honest.
   </aside>
 </section>
 
