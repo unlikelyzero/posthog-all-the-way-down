@@ -56,14 +56,14 @@ realism() {
   printf '%s\n' "${fails[@]+"${fails[@]}"}" | node -e "console.log(JSON.stringify(require('fs').readFileSync(0,'utf8').split('\n').filter(Boolean)))"
 }
 
-# Ordered MCP tool calls, turns and cost from claude's stream-json transcript.
+# Ordered tool calls, blocked tool calls (a harness problem, not an agent one), turns and cost from claude's stream-json transcript.
 transcript_summary() {
   node -e "
     const lines = require('fs').readFileSync(process.argv[1], 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l) } catch { return {} } });
     const tools = lines.filter((m) => m.type === 'assistant').flatMap((m) => m.message.content.filter((c) => c.type === 'tool_use').map((c) => c.name.replace(/^mcp__k6__/, '')));
     const result = lines.find((m) => m.type === 'result') || {};
     const v = tools.indexOf('validate_script'), r = tools.indexOf('run_script');
-    console.log(JSON.stringify({ tools_sequence: tools, validate_before_run: v >= 0 && (r < 0 || v < r), turns: result.num_turns ?? null, cost_usd: result.total_cost_usd ?? null }))
+    console.log(JSON.stringify({ tools_sequence: tools, validate_before_run: v >= 0 && (r < 0 || v < r), permission_denials: (result.permission_denials || []).length, turns: result.num_turns ?? null, cost_usd: result.total_cost_usd ?? null }))
   " "$1"
 }
 
@@ -94,7 +94,7 @@ To re-score your fix against the same browser references: run k6/api.js with
 \`k6 run --out json=$OUT/$tag-check.json k6/api.js\`, then
 \`node eval/score.js ${train[*]} --protocol $OUT/$tag-check.json\`." \
         --model "$MODEL" --mcp-config "$mcp" --strict-mcp-config --output-format stream-json --verbose \
-        --permission-mode acceptEdits --allowedTools 'Read' 'Edit' 'Bash(k6:*)' 'Bash(node eval/score.js:*)' 'mcp__k6__*' \
+        --permission-mode acceptEdits --allowedTools 'Read' 'Edit' 'Bash(k6:*)' 'Bash(node:*)' 'mcp__k6__*' \
         > "$OUT/$tag.transcript.jsonl" || true
 
       read -ra heldout <<< "$(references "$tag-heldout" "${on[0]}" "${HELDOUT_TERMS[@]}")"
