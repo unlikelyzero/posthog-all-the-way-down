@@ -91,10 +91,20 @@
   .k6rec-missing { height: 640px; display: none; align-items: center; justify-content: center; color: var(--dim); font-size: 34px; }
   .k6rec.empty img { display: none; }
   .k6rec.empty .k6rec-missing { display: flex; }
-  .clips { position: absolute; left: 1440px; top: 380px; width: 420px; display: grid; gap: 14px; }
-  .clip { background: #16161f; border: 2px solid #333; border-radius: 12px; overflow: hidden; }
-  .clip img { display: block; width: 100%; height: 50px; object-fit: cover; object-position: left top; background: #fff; }
-  .clip-hud { display: flex; justify-content: space-between; padding: 6px 12px; font: 700 22px/1.2 "Inter", sans-serif; color: var(--dim); }
+  /* Hook: one PR, before and after. Each "after" cell draws a dashed left border; together they mark the PR. */
+  .drift { display: grid; grid-template-columns: 360px 560px 820px; column-gap: 40px; align-items: center; }
+  .drift > * { padding: 10px 0; }
+  .drift .after { border-left: 4px dashed #555; padding-left: 40px; align-self: stretch; display: flex; align-items: center; }
+  .drift-head { font-size: 38px; font-weight: 900; align-self: end; }
+  .drift-head small, .drift-label small { display: block; font-size: 24px; font-weight: 600; color: var(--dim); line-height: 1.25; }
+  .drift-head.after { display: block; }
+  .drift-label { font-size: 32px; font-weight: 800; text-align: right; line-height: 1.15; }
+  .drift-unit { font-size: 24px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); text-align: right; padding-top: 20px; }
+  .bar { display: flex; align-items: center; gap: 18px; font-size: 48px; font-weight: 900; }
+  .bar i { display: block; height: 60px; border-radius: 0 4px 4px 0; }
+  .clip { width: 470px; background: #16161f; border: 2px solid #333; border-radius: 12px; overflow: hidden; }
+  .clip img { display: block; width: 100%; height: 250px; object-fit: cover; object-position: left top; background: #fff; }
+  .clip-hud { display: flex; justify-content: space-between; padding: 8px 14px; font: 700 26px/1.2 "Inter", sans-serif; color: var(--dim); }
   .clip-hud b { color: var(--fg); }
   .clip.no-debounce .clip-hud b { color: var(--fail); }
   .clip.empty img { visibility: hidden; }
@@ -243,67 +253,46 @@
   </aside>
 </section>
 
-<!-- 4 · Hook: bar charts -->
+<!-- 4 · Hook: one PR, before and after -->
 <section>
-  <h2>Requests per route, one journey</h2>
-  <svg viewBox="0 0 1800 640" width="1800" height="640" role="img" aria-label="Two bar charts, protocol test and browser journey. The protocol test sends 4 flag-list calls per journey. After a flagged change the browser's feature flag list route jumps from 4 to 20–26 calls per journey; the protocol test stays at 4.">
-    <g font-size="30" font-weight="700">
-      <!-- left panel: protocol test -->
-      <text x="0" y="40" font-size="40" font-weight="900" fill="#7ab8ff">k6 protocol test</text>
-      <g fill="#b8b8c8" text-anchor="end">
-        <text x="330" y="140">GET flag list</text>
-        <text x="330" y="260">POST HogQLQuery</text>
-        <text x="330" y="380">GET dashboards</text>
-        <text x="330" y="500">GET flag detail</text>
-      </g>
-      <g fill="#7ab8ff">
-        <rect x="350" y="105" width="75" height="50"/>
-        <text x="440" y="142" font-size="36" font-weight="900">4</text>
-        <rect x="350" y="225" width="94" height="50"/>
-        <rect x="350" y="345" width="38" height="50"/>
-        <rect x="350" y="465" width="19" height="50"/>
-      </g>
-      <!-- right panel: browser journey -->
-      <text x="920" y="40" font-size="40" font-weight="900" fill="#f5f5f0">Browser journey</text>
-      <g fill="#b8b8c8" text-anchor="end">
-        <text x="1250" y="140">GET flag list</text>
-        <text x="1250" y="260">POST HogQLQuery</text>
-        <text x="1250" y="380">GET dashboards</text>
-        <text x="1250" y="500">GET flag detail</text>
-      </g>
-      <g fill="#f5f5f0">
-        <rect x="1270" y="105" width="75" height="50"/>
-        <rect x="1270" y="225" width="94" height="50"/>
-        <rect x="1270" y="345" width="38" height="50"/>
-        <rect x="1270" y="465" width="19" height="50"/>
-      </g>
-      <g class="fragment" data-fragment-index="0">
-        <rect x="1270" y="105" width="412" height="50" fill="#ff5c5c"/>
-        <text x="1682" y="92" text-anchor="end" font-size="44" font-weight="900" fill="#ff5c5c">4 → 20–26</text>
-        <text x="920" y="610" font-size="34" font-weight="800" fill="#ffd23f">one frontend change, behind one feature flag</text>
-      </g>
-      <text x="0" y="610" font-size="28" fill="#b8b8c8">measured calls per journey run</text>
-    </g>
-  </svg>
-  <div class="clips fragment" data-fragment-index="0">
+  <h2 style="margin-bottom:30px">The app changed. The load test didn't.</h2>
+  <div class="drift">
+    <div></div>
+    <div class="drift-head">Before the PR</div>
+    <div class="drift-head after fragment" data-fragment-index="1">After the PR<small>removes the 300 ms flag-search debounce, behind a <span class="ph">PostHog</span> feature flag</small></div>
+
+    <div class="drift-label">The app<small>typing "checkout" into flag search</small></div>
     <div class="clip framerec" data-rec="search-debounced">
       <img alt="Typing checkout into the flag search with the debounce: one list request after typing stops">
       <div class="clip-hud"><span>debounced</span><span>list requests: <b class="calls">0</b></span></div>
     </div>
-    <div class="clip framerec no-debounce" data-rec="search-no-debounce">
+    <div class="after"><div class="clip framerec no-debounce fragment" data-fragment-index="1" data-rec="search-no-debounce">
       <img alt="Typing checkout with the debounce removed: a list request on every keystroke">
       <div class="clip-hud"><span>debounce removed</span><span>list requests: <b class="calls">0</b></span></div>
-    </div>
+    </div></div>
+
+    <div class="drift-unit">Flag-list API calls per journey</div>
+    <div></div>
+    <div class="after"></div>
+
+    <div class="drift-label">Browser journey<small>what users send</small></div>
+    <div class="bar"><i style="width:80px;background:var(--fg)"></i>4</div>
+    <div class="after"><div class="bar fragment" data-fragment-index="2"><i style="width:520px;background:linear-gradient(90deg,var(--fail) 400px,rgba(255,92,92,.35) 400px)"></i><span class="fail">20–26</span></div></div>
+
+    <div class="drift-label"><span class="k6">k6</span> protocol load test<small>what we replay</small></div>
+    <div class="bar"><i style="width:80px;background:var(--k6)"></i>4</div>
+    <div class="after"><div class="bar fragment" data-fragment-index="2"><i style="width:80px;background:var(--k6)"></i>4 <span class="pass" style="font-size:34px">✓ still passes</span></div></div>
   </div>
-  <p class="fragment" style="font-size:46px;font-weight:800">Load test: <span class="pass">still green.</span> Testing an app that no longer exists.</p>
+  <p class="cite" style="margin-top:16px">Measured on the demo stack. After the PR: 3 runs, 20 to 26 calls; the faded end of the bar is the spread.</p>
   <aside class="notes">
-    [~1:20 to 2:30] Left: what our k6 protocol test sends per route. Right: what a real browser sends
-    doing the same journey. They match. Good load test.
-    Click. One frontend change, behind a feature flag. The browser now hits the flag list 5 to 6.5
-    times as often: 4 calls per journey become 20 to 26 (3 measured runs). The protocol test still sends 4. The load test? Didn't move. It can't: it's a script.
-    Click. "Our load test is still green. It's now testing an app that no longer exists."
-    The two clips appear with the red bar: the same search box typing "checkout". Debounced, it sends
-    1 list request after you stop typing; with the debounce removed it sends 16, two per keystroke.
+    [~1:20 to 2:30] Left column, before the PR. Top: typing "checkout" into PostHog's flag search. The
+    search is debounced, so it sends 1 list request after you stop typing. Below: one full journey makes 4
+    flag-list calls in the browser, and our k6 protocol test sends 4. They match. Good load test.
+    Click. One PR removes that 300 ms debounce, shipped behind a feature flag. Same typing, same app: now a
+    list request on every keystroke, 16 instead of 1. That's the app changing.
+    Click. What it does to traffic: the browser now makes 20 to 26 flag-list calls per journey (3 measured
+    runs), 5 to 6.5 times as many. The protocol test still sends 4, and it still passes. It can't notice:
+    it's a script of what the frontend used to send.
   </aside>
 </section>
 
@@ -637,6 +626,10 @@ RESULT: <span class="fail">FAIL</span></pre>
       if (Reveal.getCurrentSlide()?.contains(box)) play()
     })
     Reveal.on('slidechanged', (e) => (e.currentSlide.contains(box) ? play() : clearTimeout(timer)))
+    // Revealing a recording restarts every recording on its slide, so side-by-side clips play in sync.
+    Reveal.on('fragmentshown', (e) => {
+      if (e.fragment.querySelector('.framerec') || e.fragment.matches('.framerec')) if (Reveal.getCurrentSlide().contains(box)) play()
+    })
   })
 </script>
 </body>
