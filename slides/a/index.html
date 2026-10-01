@@ -167,7 +167,7 @@
 <!-- 2 · The recursion -->
 <section data-auto-animate>
   <h1 class="title-small" data-id="title">Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP, presented at the Grafana Meetup at PostHog</h1>
-  <svg viewBox="-80 70 1760 760" width="1760" height="760" role="img" aria-label="Recursion loop: PostHog Docker container under test, k6 browser, PostHog, k6 protocol test, PostHog, Claude plus k6 MCP, PostHog">
+  <svg viewBox="-80 70 1760 760" width="1760" height="760" role="img" aria-label="Recursion loop: PostHog Docker container under test, k6 browser, PostHog, k6 protocol test, PostHog, Claude plus PostHog MCP and k6 MCP, PostHog">
     <defs>
       <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
         <path d="M0 0 L10 5 L0 10 z" fill="#f5f5f0"/>
@@ -207,8 +207,9 @@
       <g><rect x="380" y="650" width="320" height="100" rx="18" fill="#ffd23f"/>
         <text x="540" y="695" font-size="38" font-weight="900" fill="#0a0a0f">PostHog</text>
         <text x="540" y="732" font-size="28" font-weight="700" fill="#0a0a0f">feature flags</text></g>
-      <g><rect x="55" y="447" width="320" height="100" rx="18" fill="#16161f" stroke="#c79bff" stroke-width="4"/>
-        <text x="215" y="509" font-size="34" font-weight="900" fill="#c79bff">Claude + k6 MCP</text></g>
+      <g><rect x="35" y="447" width="360" height="100" rx="18" fill="#16161f" stroke="#c79bff" stroke-width="4"/>
+        <text x="215" y="490" font-size="34" font-weight="900" fill="#c79bff">Claude</text>
+        <text x="215" y="528" font-size="26" font-weight="700" fill="#c79bff">+ PostHog MCP + k6 MCP</text></g>
       <g><rect x="171" y="193" width="320" height="100" rx="18" fill="#ffd23f"/>
         <text x="331" y="238" font-size="38" font-weight="900" fill="#0a0a0f">PostHog</text>
         <text x="331" y="275" font-size="28" font-weight="700" fill="#0a0a0f">stores eval results</text></g>
@@ -218,8 +219,8 @@
   <aside class="notes">
     [~0:40, 30 s] Walk the loop fast, one breath per arrow: PostHog, self-hosted in Docker on this laptop, is the app under test. k6 browser
     clicks through it. PostHog records that traffic about itself. We check a k6 protocol test against it.
-    PostHog feature flags break the app. Claude with the k6 MCP repairs the test. The eval results go
-    back into PostHog. Click: "Yes, every arrow is real." Advance.
+    PostHog feature flags break the app. Claude repairs the test: the PostHog MCP tells it what users send,
+    the k6 MCP validates and runs the fix. The results go back into PostHog. Click: "Yes, every arrow is real." Advance.
   </aside>
 </section>
 
@@ -515,8 +516,9 @@ RESULT: <span class="fail">FAIL</span></pre>
   <ul style="font-size:40px">
     <li>Graded on <strong>held-out</strong> browser runs the agent never saw</li>
     <li>Realism checks: setup auth, &gt;1 VU, sleep, check. No replaying the route list.</li>
-    <li>Planned: 3 scenarios × 5 trials each way. <strong>Ran: 1 scenario, 4 trials.</strong></li>
+    <li>Planned: 3 scenarios × 5 trials each way. Ran: 1 scenario, 4 trials.</li>
   </ul>
+  <p class="fragment" style="font-size:48px;font-weight:800;margin:30px 0 0">Offered the <span class="k6">k6 MCP</span> 3 times, the agent called it <span class="fail">0</span> times.</p>
   <p class="cite">Same shape as <span class="ph">PostHog</span>'s own MCP evals: services/mcp/evals README, PostHog repo</p>
   <aside class="notes">
     [~1 min] The agent fixing it once is an anecdote. So the design: the same repair task with the k6 MCP
@@ -524,6 +526,8 @@ RESULT: <span class="fail">FAIL</span></pre>
     can't overfit the trace. Realism gates stop it from just replaying the route list.
     "This is how PostHog evaluates its own MCP server": cite the services/mcp/evals README.
     Be upfront: we planned 3 scenarios times 5 trials, and ran 1 scenario, 4 trials, before the talk.
+    Click. What we got: 3 of 4 passed on held-out runs (the one failure was our harness blocking its scripts).
+    But with the k6 MCP offered, the agent called it zero times. It used shell k6. Next slide: why.
   </aside>
 </section>
 
@@ -546,7 +550,7 @@ run_script       <span class="pass">success</span>, 159/159 checks
     </div>
   </div>
   <aside class="notes">
-    [~1 min] In our first agent runs, offered the k6 MCP, the agent called it zero times. Why? We tried it directly. validate_script and run_script
+    [~1 min] Why did it skip the k6 MCP? We tried it directly. validate_script and run_script
     copy the script to a temp file, so our api.js, which imports ./auth.js and ./route.js, fails before it
     loads. And there's no way to pass env vars, so it can't log in. With the CLI right there, the agent took
     the path that worked. Bundle the script into one file with the stack URL baked in, and the k6 MCP
@@ -589,7 +593,7 @@ run_script       <span class="pass">success</span>, 159/159 checks
   <ol style="font-size:46px;font-weight:700">
     <li>Your load test is a cached model of the frontend. <strong>Check it for staleness.</strong></li>
     <li class="fragment">Compare it with what users' browsers send: a <span class="k6">k6</span> browser on a PR, <span class="ph">PostHog</span> in production.</li>
-    <li class="fragment">Let agents fix it, and <strong>eval the agent</strong>: with vs without tools, held-out data.</li>
+    <li class="fragment">Let an agent fix it: <span class="ph">PostHog MCP</span> for what users do, <span class="k6">k6 MCP</span> to validate and run. Then <strong>eval the agent</strong>, and check it actually uses its tools.</li>
   </ol>
   <p class="fragment" style="font-size:46px;font-weight:900;margin-top:50px;color:var(--hot)">
     A protocol load test is a cached model of browser behavior. Keep comparing it with observed browser
