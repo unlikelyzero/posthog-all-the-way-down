@@ -480,32 +480,20 @@ RESULT: <span class="fail">FAIL</span></pre>
   </aside>
 </section>
 
-<!-- 9 · Demo: n+1 and repair -->
+<!-- 9 · Agent repair -->
 <section>
-  <div class="cols" style="grid-template-columns: 1fr 1.25fr">
-    <div class="demo">
-      <span class="tag">LIVE</span>
-      <p style="font-size:40px;font-weight:900;margin:16px 0 6px"><code>meetup-n-plus-one</code></p>
-      <p>Coverage <span class="fail">FAILS</span>.<br>Report names the new route.</p>
-      <p class="fallback">Short on time: <code>./demo.sh offline n-plus-one</code></p>
-    </div>
-    <div class="demo">
-      <span class="tag" style="background:#555">FROM THE EVAL</span>
-      <p style="font-size:40px;font-weight:900;margin:16px 0 6px"><span class="ai">Claude</span> repairs it</p>
-      <p style="font-family:Menlo,monospace;font-size:30px;line-height:1.5">
-        read the score report<br>→ tally routes in the browser runs<br>→ edit api.js<br>→ k6 run + score.js<br>→ repeat until <span class="pass">green</span></p>
-      <p class="fallback">Held-out runs: C 100%, M 90.6%, <span class="pass">PASS</span>. 28 tool calls, $1.08.</p>
-    </div>
+  <div class="demo" style="max-width:1300px">
+    <span class="tag" style="background:#555">FROM THE EVAL</span>
+    <p style="font-size:56px;font-weight:900;margin:16px 0 10px"><span class="ai">Claude</span> repairs the stale test</p>
+    <p style="font-family:Menlo,monospace;font-size:36px;line-height:1.5;margin:0">
+      read the score report<br>→ tally routes in the browser runs<br>→ edit api.js<br>→ k6 run + score.js<br>→ repeat until <span class="pass">green</span></p>
+    <p class="fallback" style="font-size:34px">Held-out runs: C 100%, M 90.6%, <span class="pass">PASS</span>. 28 tool calls, $1.08.</p>
   </div>
   <aside class="notes">
-    [~2 min] Step 3: flip meetup-n-plus-one and run ./demo.sh n-plus-one. The UI now fetches every flag's
-    activity endpoint, one request per row. Coverage fails and the report names the new route
-    (measured: C 58.9%, the activity route is 39.4% of browser calls; M fails too, 57.3%).
-    If short on time, ./demo.sh offline n-plus-one scores a seeded run instantly; say it's seeded.
-    Step 4, from the eval, not live: Claude Code (Sonnet 5.5, headless) gets the score report and the
-    stale api.js. It read the report, tallied routes in the browser runs, edited api.js, ran k6 and
+    [~1 min] From the eval, not live: Claude Code (Sonnet 5.5, headless) gets the no-debounce score report and
+    the stale api.js. It read the report, tallied routes in the browser runs, edited api.js, ran k6 and
     score.js itself, and repeated until green. Then we graded it on held-out browser runs it never saw:
-    C 100%, M 90.6%, pass. 28 tool calls, about a dollar.
+    C 100%, M 90.6%, pass. 28 tool calls, about a dollar. Note what it used: shell k6, not the k6 MCP.
   </aside>
 </section>
 
