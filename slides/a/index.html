@@ -385,7 +385,7 @@ page.on('request', (req) => {
     Click. PostHog sees the same calls in its own network metrics: PostHog recording PostHog. We show it
     next to the score as a cross-check; on a baseline run it agrees 100% per route with the browser capture. On a PR
     it never gates the build: the browser capture is immediate and doesn't depend on ingestion lag. But that
-    agreement is what lets PostHog take over in production, where it has real users. After the demo we point the scorer at it directly.
+    agreement is what lets PostHog take over in production, where it has real users. Later we point the scorer at it directly.
   </aside>
 </section>
 
@@ -435,35 +435,6 @@ page.on('request', (req) => {
     Be straight: one recorded run, not an eval. On a laptop the users are k6 browsers. If asked: in 3 earlier eval runs with
     only the k6 MCP offered, the agent called it zero times and used shell k6. Why: its tools run a temp copy of the script, so relative imports and env vars break;
     k6/bundle.js inlines both.
-  </aside>
-</section>
-
-<!-- 8 · Demo: baseline + flip -->
-<section>
-  <div class="demo">
-    <span class="tag">LIVE DEMO</span>
-    <p style="font-size:52px;font-weight:900;margin:18px 0 8px">Flip <code>meetup-no-debounce</code> in <span class="ph">PostHog</span></p>
-    <p class="fallback">Baseline first: all four gates <span class="pass">PASS</span>. Fallback: after 60 s, <code>demo.sh</code> scores a recorded run offline.</p>
-  </div>
-  <div style="margin-top:40px">
-<pre class="term">$ node eval/score.js --scenario no-debounce --ref … --protocol …
-Coverage C    97.7%  (>= 95.0%)  <span class="pass">PASS</span>
-Mix      M    76.2%  (>= 85.0%)  <span class="fail">FAIL</span>
-Stale    E     0.0%  (&lt;= 2.0%)  <span class="pass">PASS</span>
-Errors         0.0%  (&lt;= 1.0%)  <span class="pass">PASS</span>
-  mix under by 18.7%: GET /api/projects/:id/feature_flags/
-PostHog cross-check agreement 96.2%
-RESULT: <span class="fail">FAIL</span></pre>
-  </div>
-  <aside class="notes">
-    [7:00 to 11:00] Step 1, baseline (1 min): show the baseline report, all gates green, PostHog
-    cross-check agrees (measured: C 96.3%, M 96.3%, E 0.0%, errors 0.0%, agreement 100.0%).
-    Step 2 (3 min, live): in the PostHog UI, turn on meetup-no-debounce. The journey hard-reloads and
-    waits until it sees the flag, then runs. Then api.js, then score.js.
-    Expected: Coverage PASSES, Mix FAILS. THIS is the key point: an endpoint checklist alone would have
-    said everything's fine. Every route is still covered; the volume is wrong.
-    If any step takes over 60 s: "Live demos, everybody." demo.sh prints an offline-fallback banner and scores a recorded run instead. Run ./demo.sh prepare at T-30 min so only the browser journey runs live.
-    The terminal block is a real no-debounce run on self-hosted PostHog; live numbers shift a little with the search term.
   </aside>
 </section>
 
