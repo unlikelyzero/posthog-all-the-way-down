@@ -119,9 +119,12 @@
   .loop .card code { font-size: 28px; }
   .loop .card p.dim { margin-top: 10px; font-size: 26px; }
 
+  .srcflow { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; font-size: 26px; }
+  .srcflow .chip { border: 3px solid #555; border-radius: 12px; padding: 8px 16px; font-weight: 700; }
+  .srcflow > b { color: var(--dim); font-size: 30px; }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
   .tiles .card p { margin: 0; font-size: 30px; }
-  .tiles .card p.stat { font-size: 96px; font-weight: 900; line-height: 1.1; }
+  .tiles .card p.stat { font-size: 84px; font-weight: 900; line-height: 1.1; }
   .mono { font-family: "JetBrains Mono", Menlo, monospace; font-size: 28px; margin: 0; line-height: 1.5; }
 
   .take { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 10px; }
@@ -456,8 +459,15 @@ page.on('request', (req) => {
 
 <!-- 8c · Are you testing where users are? -->
 <section>
-  <p class="kicker">Same gates, a different question</p>
-  <h2 style="margin-bottom:30px">Are you load-testing where your users are?</h2>
+  <p class="kicker">The same gates, pointed at <span class="ph">PostHog</span>'s user traffic</p>
+  <h2 style="margin-bottom:22px">Are you load-testing where your users are?</h2>
+  <div class="srcflow">
+    <span class="chip" style="border-color:var(--hot)"><span class="ph">PostHog</span> network metrics: every API call users' browsers made</span>
+    <b>vs</b>
+    <span class="chip" style="border-color:var(--k6)"><span class="k6">k6</span> load test: what we replay</span>
+    <b>→</b>
+    <span class="chip">score.js: Coverage, Mix, Stale</span>
+  </div>
   <div class="tiles">
     <div class="card"><p class="dim">Coverage</p><p class="stat fail">89.9%</p><p>of user calls hit a route the test covers</p></div>
     <div class="card"><p class="dim">Mix</p><p class="stat fail">57.3%</p><p>overlap in where the calls go</p></div>
@@ -469,7 +479,7 @@ page.on('request', (req) => {
     <div class="card" style="border-top:8px solid var(--hot)"><p class="ph" style="margin:0 0 8px">Users actually hit</p>
       <p class="mono">ActorsQuery · EventsQuery · hog_functions · cohorts/ · customer_profile_configs</p></div>
   </div>
-  <p class="cite" style="margin-top:20px">Stage protocol test vs <code>score.js --reference posthog --since 2m</code>, with k6 browsers as users on persons, insights, activity and cohorts. Demo stack.</p>
+  <p class="cite" style="margin-top:16px">Users here: k6 browsers on persons, insights, activity and cohorts, 2 minutes on the demo stack.</p>
   <aside class="notes">
     [~1 min] On a PR a k6 browser plays the user. In production you have real users, and PostHog already
     records every call their browsers make. Point the same scorer at that traffic (score.js --reference
