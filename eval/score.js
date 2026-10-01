@@ -5,6 +5,7 @@
 //   node eval/score.js --ref out/browser-a.json --ref out/browser-b.json \
 //     --protocol out/protocol-a.json [--run-id ID] [--scenario NAME] [--json out.json]
 //   node eval/score.js --reference posthog --since 60m --protocol out/protocol-a.json   # every session, last hour
+//   node eval/score.js --reference posthog --from 2026-10-01T01:48:00Z --to 2026-10-01T01:53:00Z --protocol …
 //   node eval/score.js --selftest
 //
 // Env (all optional): POSTHOG_HOST, POSTHOG_PERSONAL_API_KEY (cross-check, query:read),
@@ -100,6 +101,8 @@ const CROSSCHECK_SQL = routeCountsSql(`s.attributes['meetup.run_id'] = {run_id}`
 // Users: the same query without the run filter, so every session posthog-js recorded in the window.
 // ponytail: no host filter, so an app that calls third-party APIs from the browser would count them too.
 const USERS_SQL = routeCountsSql(`m.timestamp >= now() - toIntervalMinute({minutes})`)
+// One recorded session: a fixed UTC window.
+const WINDOW_SQL = routeCountsSql(`m.timestamp >= parseDateTimeBestEffort({from}) AND m.timestamp < parseDateTimeBestEffort({to})`)
 
 // HogQL rows [method, url.template, calls] to reference points, minus posthog-js's own traffic.
 export const toRefPoints = (rows) =>
@@ -240,12 +243,14 @@ async function main() {
   }
   let ref, proto = readPoints(readFileSync(args.protocol, 'utf8'), 'http_reqs')
   if (users) {
-    const minutes = sinceMinutes(args.since || '60m')
-    ref = (await queryRoutes(USERS_SQL, { minutes })) || []
+    const window = args.from && args.to
+    const minutes = window ? null : sinceMinutes(args.since || '60m')
+    ref = (await (window ? queryRoutes(WINDOW_SQL, { from: args.from, to: args.to }) : queryRoutes(USERS_SQL, { minutes }))) || []
     // network metrics can't see request bodies, so compare without the #kind suffix
     proto = proto.map((p) => ({ ...p, route: withoutKind(p.route) }))
     const calls = ref.reduce((a, p) => a + p.value, 0)
-    console.log(`Reference: what PostHog saw users' browsers send, last ${minutes} min (${calls} calls, ${ref.length} routes)`)
+    const span = window ? `${args.from} to ${args.to}` : `last ${minutes} min`
+    console.log(`Reference: what PostHog saw users' browsers send, ${span} (${calls} calls, ${ref.length} routes)`)
   } else {
     ref = args.ref.flatMap((f) => readPoints(readFileSync(f, 'utf8'), 'api_calls'))
   }
