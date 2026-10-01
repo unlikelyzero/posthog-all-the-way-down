@@ -1,0 +1,69 @@
+diff --git a/frontend/src/loadPostHogJS.tsx b/frontend/src/loadPostHogJS.tsx
+index 4ca2b9c1..3317b066 100644
+--- a/frontend/src/loadPostHogJS.tsx
++++ b/frontend/src/loadPostHogJS.tsx
+@@ -41,6 +41,7 @@ export interface LoadPostHogJSOptions {
+ }
+ 
+ export function loadPostHogJS(options: LoadPostHogJSOptions = {}): void {
++    console.debug('MEETUP_PATCH_V1')
+     if (window.JS_POSTHOG_API_KEY) {
+         posthog.init(window.JS_POSTHOG_API_KEY, {
+             opt_out_useragent_filter: window.location.hostname === 'localhost', // we ARE a bot when running in localhost, so we need to enable this opt-out
+@@ -60,7 +61,17 @@ export function loadPostHogJS(options: LoadPostHogJSOptions = {}): void {
+             error_tracking: {
+                 __capturePostHogExceptions: true,
+             },
+-            metrics: { network: true, serviceName: 'posthog-app', ...options.metrics },
++            metrics: {
++                // MEETUP_PATCH_V1: tag each network metric with the k6 run id so a run can be queried alone
++                network: {
++                    attributes: () => {
++                        const runId = window.localStorage?.getItem('meetup_run_id')
++                        return runId ? { 'meetup.run_id': runId } : undefined
++                    },
++                },
++                serviceName: 'posthog-app',
++                ...options.metrics,
++            },
+             before_send: options.beforeSend,
+             loaded: (loadedInstance) => {
+                 if (loadedInstance.sessionRecording) {
+diff --git a/frontend/src/scenes/feature-flags/featureFlagsLogic.ts b/frontend/src/scenes/feature-flags/featureFlagsLogic.ts
+index 6aec38f6..7069d238 100644
+--- a/frontend/src/scenes/feature-flags/featureFlagsLogic.ts
++++ b/frontend/src/scenes/feature-flags/featureFlagsLogic.ts
+@@ -1,5 +1,6 @@
+ import { MakeLogicType, actions, connect, kea, listeners, path, props, reducers, selectors } from 'kea'
+ import { loaders } from 'kea-loaders'
++import posthog from 'posthog-js'
+ import { actionToUrl, router, urlToAction } from 'kea-router'
+ 
+ import { LemonDialog, PaginationManual } from '@posthog/lemon-ui'
+@@ -730,7 +731,10 @@ export const featureFlagsLogic = kea<featureFlagsLogicType>([
+         },
+         setFeatureFlagsFilters: async (_, breakpoint) => {
+             if (values.activeTab === FeatureFlagsTab.OVERVIEW) {
+-                await breakpoint(300)
++                // MEETUP_PATCH_V1: seeded drift, fires a list request on every keystroke
++                if (!posthog.isFeatureEnabled('meetup-no-debounce')) {
++                    await breakpoint(300)
++                }
+                 actions.loadFeatureFlags()
+             }
+         },
+@@ -742,6 +746,14 @@ export const featureFlagsLogic = kea<featureFlagsLogicType>([
+             actions.setFeatureFlagsFilters({ ...DEFAULT_FILTERS, order: values.filters.order }, true)
+         },
+         loadFeatureFlagsSuccess: () => {
++            // MEETUP_PATCH_V1: seeded drift, one activity request per listed flag (a route the baseline never calls)
++            if (posthog.isFeatureEnabled('meetup-n-plus-one')) {
++                for (const flag of values.featureFlags.results) {
++                    if (flag.id) {
++                        void api.get(`api/projects/${values.currentProjectId}/feature_flags/${flag.id}/activity/`)
++                    }
++                }
++            }
+             if (values.featureFlags.results.length > 0) {
+                 globalSetupLogic.findMounted()?.actions.markTaskAsCompleted(SetupTaskId.CreateFeatureFlag)
+             }

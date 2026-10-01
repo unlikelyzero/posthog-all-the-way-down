@@ -1,0 +1,21 @@
+# Fast path: the same three behaviors as frontend.patch, applied to PostHog's already-built JS with
+# perl, so no frontend build (and no multi-GB pnpm install) is needed.
+#   docker build --build-arg POSTHOG_SHA=54c04a0f494dc0821b87e95c19dcade17a633591 \
+#     -f posthog/Dockerfile.hotpatch -t posthog-meetup:local posthog/
+# ponytail: regexes over minified output, tied to the pinned SHA; the build fails if any stops matching.
+# Use Dockerfile + frontend.patch for any other SHA. Never publish this image (contains ee/ code).
+ARG POSTHOG_SHA
+FROM posthog/posthog:sha-${POSTHOG_SHA}
+USER root
+RUN set -e; cd /code; \
+    files=$(grep -l -e 'loadFeatureFlags()' -e 'serviceName:"posthog-app"' frontend/dist/*.js staticfiles/*.js); \
+    perl -0pi -e ' \
+      s/await (\w+)\(300\),(\w+)\.loadFeatureFlags\(\)/(window.posthog?.isFeatureEnabled("meetup-no-debounce")||await $1(300)),$2.loadFeatureFlags()/g; \
+      s/loadFeatureFlagsSuccess:\(\)=>\{(\w+)\.featureFlags\.results/loadFeatureFlagsSuccess:()=>{window.posthog?.isFeatureEnabled("meetup-n-plus-one")\&\&$1.featureFlags.results.forEach(f=>{let t=window.POSTHOG_APP_CONTEXT?.current_team;f.id\&\&fetch("\/api\/projects\/"+(t?.project_id??t?.id)+"\/feature_flags\/"+f.id+"\/activity\/")});$1.featureFlags.results/g; \
+      s/metrics:\{network:!0,serviceName:"posthog-app"/metrics:{network:{attributes:()=>{let r=window.localStorage?.getItem("meetup_run_id");return r?{"meetup.run_id":r}:void 0}},serviceName:"posthog-app"\/*MEETUP_PATCH_V1*\//g; \
+    ' $files; \
+    for f in $files; do rm -f "$f.gz" "$f.br"; done; \
+    test "$(grep -l 'meetup-no-debounce' staticfiles/*.js | wc -l)" -gt 0; \
+    test "$(grep -l 'meetup-n-plus-one' staticfiles/*.js | wc -l)" -gt 0; \
+    test "$(grep -l 'MEETUP_PATCH_V1' staticfiles/*.js | wc -l)" -gt 0; \
+    chown -R posthog:posthog frontend/dist staticfiles

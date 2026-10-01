@@ -1,0 +1,19 @@
+# Task set in the style of PostHog's MCP evals (services/mcp/evals): intent, expected_tools, success_criteria.
+# run.sh reads id, flags and intent; keep each on one line.
+version: 1
+tasks:
+  - id: repair-no-debounce
+    flags: meetup-no-debounce
+    intent: "The load test in k6/api.js no longer matches real browser traffic. The drift report is below. Fix k6/api.js. Done means every score.js gate passes against the browser references and the script still runs cleanly; verify that before you finish."
+    expected_tools: [get_documentation, validate_script, run_script]
+    success_criteria: all score.js gates pass on a held-out reference, and the realism gates pass
+  - id: repair-n-plus-one
+    flags: meetup-n-plus-one
+    intent: "The load test in k6/api.js no longer matches real browser traffic. The drift report is below. Fix k6/api.js. Done means every score.js gate passes against the browser references and the script still runs cleanly; verify that before you finish."
+    expected_tools: [get_documentation, validate_script, run_script]
+    success_criteria: all score.js gates pass on a held-out reference, and the realism gates pass
+  - id: repair-both
+    flags: meetup-no-debounce,meetup-n-plus-one
+    intent: "The load test in k6/api.js no longer matches real browser traffic. The drift report is below. Fix k6/api.js. Done means every score.js gate passes against the browser references and the script still runs cleanly; verify that before you finish."
+    expected_tools: [get_documentation, validate_script, run_script]
+    success_criteria: all score.js gates pass on a held-out reference, and the realism gates pass

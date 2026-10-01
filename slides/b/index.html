@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/monokai.css">
+<title>Using PostHog to Test PostHog with Grafana k6 and PostHog MCP and the Grafana k6 MCP</title>
+<link rel="stylesheet" href="../vendor/reveal.js/dist/reveal.css">
+<link rel="stylesheet" href="../vendor/reveal.js/dist/theme/white.css">
+<link rel="stylesheet" href="../vendor/reveal.js/plugin/highlight/monokai.css">
 <style>
   /* Two accents, used consistently: blue = protocol test, orange = browser reference. */
   :root {
@@ -61,7 +61,7 @@
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
   .report {
     background: #0f1115; color: #e8eaee; font-family: var(--r-code-font); font-size: 28px; line-height: 1.45;
-    padding: 28px 36px; border-radius: 10px; white-space: pre; margin: 0;
+    padding: 28px 36px; border-radius: 10px; white-space: pre; margin: 0; box-sizing: border-box;
   }
   .report .ok { color: #4ade80; font-weight: 700; }
   .report .bad { color: #f87171; font-weight: 700; }
@@ -84,7 +84,7 @@
 
 <!-- 1. Title -->
 <section>
-  <h1>Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP</h1>
+  <h1>Using PostHog to Test PostHog with Grafana k6 and PostHog MCP and the Grafana k6 MCP</h1>
   <p class="muted" style="font-size:40px; margin-top:24px">presented at the Grafana Meetup at PostHog</p>
   <p style="font-size:44px; font-weight:700; margin-top:64px">Your load test passed. It's also lying.</p>
   <p class="muted" style="margin-top:40px">Yes, PostHog is in the title three times. Every one of them is load-bearing.</p>
@@ -103,34 +103,34 @@
     <span class="sw" style="background:var(--proto)"></span><span class="proto">k6 protocol test</span> (api.js)
     &nbsp;&nbsp;&nbsp;
     <span class="sw" style="background:var(--browser)"></span><span class="browser">k6 browser journey</span> (reference)
-    &nbsp;&nbsp;&nbsp;<span class="illustrative">illustrative</span>
+    &nbsp;&nbsp;&nbsp;<span class="illustrative">other rows illustrative</span>
   </div>
   <svg width="1720" height="600" viewBox="0 0 1720 600" role="img"
-       aria-label="Butterfly bar chart: protocol requests per route on the left, browser requests per route on the right. After a flag flip, the browser feature_flags list route jumps from 3 to 24 while protocol stays at 3.">
+       aria-label="Butterfly bar chart: protocol requests per route on the left, browser requests per route on the right. After a flag flip, the browser feature_flags list route jumps from 4 to 20–26 while protocol stays at 4.">
     <!-- axis headers -->
     <text x="600" y="40" text-anchor="end" font-size="28" font-weight="700" fill="#1d5fc4">← protocol test</text>
     <text x="1100" y="40" font-size="28" font-weight="700" fill="#c2410c">browser journey →</text>
     <line x1="600" y1="60" x2="600" y2="500" stroke="#111418" stroke-width="2"/>
     <line x1="1100" y1="60" x2="1100" y2="500" stroke="#111418" stroke-width="2"/>
     <!-- scale: 25 px per request; left bars end at x=600, right bars start at x=1100 -->
-    <!-- row 1: GET /feature_flags/  (3 / 3 -> 24) -->
+    <!-- row 1: GET /feature_flags/  (4 / 4 -> 20–26, bar drawn at 22) -->
     <text x="850" y="112" text-anchor="middle" font-size="26" class="mono" fill="#111418">GET /feature_flags/</text>
-    <rect x="525" y="80" width="75" height="48" fill="#1d5fc4"/>
-    <text x="512" y="113" text-anchor="end" font-size="26" fill="#111418">3</text>
-    <rect x="1100" y="80" width="75" height="48" fill="#c2410c"/>
-    <text x="1188" y="113" font-size="26" fill="#111418">3</text>
+    <rect x="500" y="80" width="100" height="48" fill="#1d5fc4"/>
+    <text x="487" y="113" text-anchor="end" font-size="26" fill="#111418">4</text>
+    <rect x="1100" y="80" width="100" height="48" fill="#c2410c"/>
+    <text x="1213" y="113" font-size="26" fill="#111418">4</text>
     <g class="fragment" data-fragment-index="1">
-      <rect x="1100" y="80" width="600" height="48" fill="#c2410c"/>
-      <text x="1685" y="114" text-anchor="end" font-size="28" font-weight="800" fill="#ffffff">24 · 8×</text>
+      <rect x="1100" y="80" width="550" height="48" fill="#c2410c"/>
+      <text x="1635" y="114" text-anchor="end" font-size="28" font-weight="800" fill="#ffffff">20–26 · 5–6.5×</text>
     </g>
-    <!-- row 2: POST /query/#HogQLQuery (6 / 6) -->
-    <text x="850" y="200" text-anchor="middle" font-size="26" class="mono" fill="#111418">POST /query/#HogQLQuery</text>
+    <!-- row 2: POST /query/HogQLQuery/ (6 / 6) -->
+    <text x="850" y="200" text-anchor="middle" font-size="26" class="mono" fill="#111418">POST /query/HogQLQuery/</text>
     <rect x="450" y="168" width="150" height="48" fill="#1d5fc4"/>
     <text x="437" y="201" text-anchor="end" font-size="26" fill="#111418">6</text>
     <rect x="1100" y="168" width="150" height="48" fill="#c2410c"/>
     <text x="1263" y="201" font-size="26" fill="#111418">6</text>
-    <!-- row 3: POST /query/#TrendsQuery (4 / 4) -->
-    <text x="850" y="288" text-anchor="middle" font-size="26" class="mono" fill="#111418">POST /query/#TrendsQuery</text>
+    <!-- row 3: POST /query/TrendsQuery/ (4 / 4) -->
+    <text x="850" y="288" text-anchor="middle" font-size="26" class="mono" fill="#111418">POST /query/TrendsQuery/</text>
     <rect x="500" y="256" width="100" height="48" fill="#1d5fc4"/>
     <text x="487" y="289" text-anchor="end" font-size="26" fill="#111418">4</text>
     <rect x="1100" y="256" width="100" height="48" fill="#c2410c"/>
@@ -161,8 +161,9 @@
     0:00–2:00. SAY: "Left, in blue: requests per route from our k6 protocol load test. Right, in orange:
     the same user journey driven through a real browser with k6 browser. They match. Good load test."
     CLICK 1: "One frontend change, behind a feature flag: someone removed a 300 ms debounce on the flag search box.
-    The browser now sends eight times as many list requests." CLICK 2: "The load test? Didn't move. Every threshold green."
-    CLICK 3: land the line. Pause. Numbers are illustrative, say so if asked: nothing here is a measured result yet.
+    The flag list goes from 4 calls per journey to 20–26: five to six and a half times." CLICK 2: "The load test? Didn't move. Every threshold green."
+    CLICK 3: land the line. Pause. The flag-list row is measured (3 k6 browser runs, search terms checkout/billing/onboarding;
+    the protocol test still sends 4). The other rows are illustrative, say so if asked.
     Paths are shortened: /api/projects/:id/ prefix dropped.
   </aside>
 </section>
@@ -175,7 +176,7 @@
     <li>It's a <span class="proto">cached model</span> of what the frontend <em>used to</em> send.</li>
     <li class="fragment">Nothing invalidates that cache. No error, no failing check, no 404.</li>
     <li class="fragment">Code review sees <em>"removed a debounce."</em><br>
-      It can't see <em>"list endpoint load ×8"</em>, or that <code>api.js</code> didn't change with it.</li>
+      It can't see <em>"list endpoint load ×5–6.5"</em>, or that <code>api.js</code> didn't change with it.</li>
     <li class="fragment">PostHog deploys every merge to master. The cache goes stale on every merge.</li>
   </ul>
   <p class="small muted fragment">Source: PostHog handbook, "Development process" page.</p>
@@ -262,7 +263,7 @@
     <thead><tr><th>Gate</th><th>Formula</th><th>Threshold</th><th>Catches</th></tr></thead>
     <tbody>
       <tr><td><strong>Coverage</strong> C</td><td><code>Σ w<sub>r</sub> · [q<sub>r</sub> &gt; 0]</code></td><td>≥ 0.95 + critical routes</td><td>new routes (N+1)</td></tr>
-      <tr><td><strong>Mix</strong> M</td><td><code>1 − ½ Σ |w<sub>r</sub> − q<sub>r</sub>|</code></td><td>≥ calibrated (~0.85)</td><td>volume shifts (debounce)</td></tr>
+      <tr><td><strong>Mix</strong> M</td><td><code>1 − ½ Σ |w<sub>r</sub> − q<sub>r</sub>|</code></td><td>≥ 0.85</td><td>volume shifts (debounce)</td></tr>
       <tr><td><strong>Stale</strong> E</td><td>share of protocol calls not in reference, or 404/410</td><td>≤ 0.02</td><td>removed / renamed routes</td></tr>
       <tr><td><strong>Errors</strong></td><td>protocol non-2xx/3xx rate</td><td>≤ 0.01</td><td>a broken test</td></tr>
     </tbody>
@@ -287,26 +288,32 @@
   <h2 style="margin-bottom:20px">Route key &amp; the PostHog cross-check</h2>
   <pre><code class="language-javascript" data-trim>
 // k6/route.js: imported by journey.js, api.js and score.js
-routeKey = METHOD + ' ' + template(pathname)          // digits / hex ids → :id, drop ?query
+routeKey = METHOD + ' ' + template(pathname)          // numeric or ≥8-char hex/uuid segments → :id
          + (pathname.endsWith('/query/') ? '#' + body.query.kind : '')
   </code></pre>
   <pre style="margin-top:20px"><code class="language-sql" data-trim>
-SELECT attributes['http.request.method'] AS method,
-       attributes['url.template']        AS route,
-       sum(count)                        AS calls   -- histogram rows are pre-aggregated
-FROM posthog.metrics
-WHERE metric_name = 'http.client.request.duration'
-  AND service_name = 'posthog-app'
-  AND attributes['meetup.run_id'] = {run_id}         -- per run, not a time window
+SELECT s.attributes['http.request.method'] AS method,
+       s.attributes['url.template']        AS route,
+       sum(m.count)                        AS calls  -- histogram rows are pre-aggregated
+FROM posthog.metrics AS m
+JOIN (SELECT series_fingerprint, any(attributes) AS attributes
+      FROM posthog.metric_series GROUP BY series_fingerprint) AS s
+  ON m.series_fingerprint = s.series_fingerprint
+WHERE m.metric_name = 'http.client.request.duration'
+  AND m.service_name = 'posthog-app'
+  AND s.attributes['meetup.run_id'] = {run_id}       -- per run, not a time window
 GROUP BY method, route
   </code></pre>
   <p class="small" style="margin-top:16px"><code>template()</code> copies posthog-js network-metrics, so keys match <code>url.template</code>.
-  PostHog can't see the <code>/query/</code> body, so the cross-check compares without <code>#kind</code>. 20 s deadline, then "pending".</p>
+  The UI puts the query kind in the path, so <code>url.template</code> sees it too; <code>#kind</code> only matters for a bare <code>/query/</code>.
+  Baseline run: <strong>100% agreement</strong> per route. 20 s deadline, then "pending".</p>
   <aside class="notes">
     6:30–7:00. Fast slide. SAY: "Everything hinges on one route key, shared by all three scripts so it can't drift.
     The templating rule is copied from posthog-js, so our keys match PostHog's url.template exactly.
-    The #kind suffix fills PostHog's blind spot: most of the UI's traffic is POST /query/, and the metric can't see the body."
-    HogQL: "This is the query against PostHog's own metrics. Filter by a run id we inject as a metric attribute, not a time window."
+    The UI sends the query kind in the path, POST /query/HogQLQuery/, so PostHog's url.template separates kinds too.
+    The #kind suffix only matters for clients that post to a bare /query/, where the kind is only in the body."
+    HogQL: "This is the query against PostHog's own metrics. Filter by a run id we inject as a metric attribute, not a time window.
+    Attributes live on metric_series, so it joins on series_fingerprint. On a baseline run it agrees 100% per route with the browser capture."
     "It runs with a 20-second deadline. If ingestion is slow, it prints pending and we move on." Then: "Let's run it."
   </aside>
 </section>
@@ -328,6 +335,7 @@ GROUP BY method, route
     7:00–8:00. Switch to terminal. Pre-warmed: stack up, UI logged in, selftest passed at T-30.
     SAY while it runs: "Browser journey: open feature flags, type 'checkout' at a fixed per-key delay, open a flag, open a dashboard. Under 30 seconds."
     Show report: all green. Point at cross-check agreement line: "and PostHog's own metrics agree."
+    Measured baseline: C 96.3%, M 96.3%, E 0.0%, errors 0.0%, PostHog cross-check agreement 100.0%.
     FALLBACK: if nothing after 60 s, play baseline video without apology: "here's the one I recorded earlier."
   </aside>
 </section>
@@ -337,27 +345,23 @@ GROUP BY method, route
   <div class="kicker">8:00 · Demo 2 of 4 · 3 min, live</div>
   <h2 style="margin-bottom:16px">Flip <code>meetup-no-debounce</code> in the PostHog UI</h2>
   <div style="display:flex; justify-content:space-between; align-items:baseline">
-    <p class="small" style="margin:0">Expected report (mock-up, not a real run):</p>
-    <span class="illustrative">illustrative</span>
+    <p class="small" style="margin:0">Report from a real run on self-hosted PostHog:</p>
   </div>
-<pre class="report" style="margin-top:12px">score.js  run=demo-02  reference: R=3 browser runs
-
-  Coverage  C = 1.00   ≥ 0.95   <span class="ok">PASS</span>
-  Mix       M = 0.53   ≥ 0.85   <span class="bad">FAIL</span>
-  Stale     E = 0.00   ≤ 0.02   <span class="ok">PASS</span>
-  Errors      = 0.00   ≤ 0.01   <span class="ok">PASS</span>
-
-  largest mix gap:  GET /feature_flags/   <span class="b">w=0.67</span>  <span class="p">q=0.20</span>
-  <span class="dim">PostHog cross-check: agreement 0.97 (posthog.metrics)</span>
-  exit 1</pre>
+<pre class="report" style="margin-top:12px"><span class="dim">$ node eval/score.js --run-id demo-02 --ref … --protocol …</span>
+Coverage C    97.7%  (&gt;= 95.0%)  <span class="ok">PASS</span>
+Mix      M    76.2%  (&gt;= 85.0%)  <span class="bad">FAIL</span>
+Stale    E     0.0%  (&lt;= 2.0%)  <span class="ok">PASS</span>
+Errors         0.0%  (&lt;= 1.0%)  <span class="ok">PASS</span>
+  mix under by 18.7%: GET /api/projects/:id/feature_flags/
+RESULT: <span class="bad">FAIL</span></pre>
   <p style="margin-top:24px; font-weight:700">Every endpoint is covered. An endpoint checklist would pass this.</p>
   <aside class="notes">
     8:00–11:00. THE key moment. In the PostHog UI (project 1), turn on meetup-no-debounce.
     SAY: "I'm shipping a frontend change. Through PostHog's own feature flags, in PostHog's own UI."
-    The journey hard-reloads, polls posthog.getFeatureFlag until true, then runs. Then api.js, then score.js.
+    The journey reloads flags and polls posthog.isFeatureEnabled until true (gives up at 60 s), hard-reloads, then runs. Then api.js, then score.js.
     Land it: "Coverage passes. Every endpoint the browser calls, the load test calls. An endpoint checklist says we're fine.
-    Mix fails: the flag list is now two-thirds of browser traffic, and one-fifth of ours."
-    Numbers on screen are an illustrative mock-up computed from the hook chart; real run numbers will differ.
+    Mix fails: the flag list's share of browser traffic jumped, and ours didn't. We're 18.7 points under on that one route."
+    Numbers on screen are from a real no-debounce run; live numbers shift a little with the search term.
     FALLBACK: 60 s timeout per step → play no-debounce.mp4.
   </aside>
 </section>
@@ -370,7 +374,7 @@ GROUP BY method, route
     <div class="demo">
       <div class="tag">RECORDED · 30 s</div>
       <p style="margin-top:12px"><code>meetup-n-plus-one</code>: one <code>GET</code> per list row.</p>
-      <p>Coverage <span class="fail">FAIL</span>. Report names the new route:<br><code>GET /feature_flags/:id/</code></p>
+      <p>Coverage <span class="fail">FAIL</span> (58.9%). Report names the new route:<br><code style="white-space:nowrap; font-size:0.75em">GET /api/projects/:id/feature_flags/:id/activity/</code></p>
     </div>
     <div class="demo">
       <div class="tag">RECORDED 4× → THEN LIVE · 2.5 min</div>
@@ -381,8 +385,8 @@ GROUP BY method, route
   </div>
   <p class="small muted" style="margin-top:28px">Fallback: each live step has a 60 s timeout → video.</p>
   <aside class="notes">
-    11:00–14:00. N+1 (30 s, recorded): "Different drift, different gate. Now the frontend fetches every flag's detail.
-    Coverage fails, and the report tells you exactly which route is new." CUT LIST: if running long, show a screenshot only (−30 s).
+    11:00–14:00. N+1 (30 s, recorded): "Different drift, different gate. Now the frontend fetches every flag's activity.
+    Coverage fails, and the report tells you exactly which route is new." Measured: C 58.9%, the activity route is 39.4% of browser calls; M fails too (57.3%). CUT LIST: if running long, show a screenshot only (−30 s).
     Repair (2.5 min): play agent video at 4×. Narrate the tool sequence. Highlight the moment validate_script rejects a wrong k6 API
     before anything runs: "that's the MCP earning its keep."
     Then LIVE: validate_script, run_script, score.js on the repaired api.js. Deterministic, safe on stage. Green again.
@@ -483,15 +487,16 @@ GROUP BY method, route
       <p style="margin-top:16px">PostHog dashboard over <code>meetup_eval_result</code> and <code>meetup_agent_trial</code> events</p>
     </div>
     <div class="demo center" style="min-height:420px">
-      <div class="tag">PLACEHOLDER · QR CODE</div>
-      <p style="margin-top:120px; font-size:40px" class="mono"><code>posthog-all-the-way-down</code></p>
+      <div class="tag">CODE</div>
+      <svg width="280" height="280" style="display:block;margin:20px auto 0" role="img" aria-label="QR code: github.com/unlikelyzero/posthog-all-the-way-down" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h37v37H0z"/><path stroke="#000000" d="M2 2.5h7m2 0h3m1 0h2m1 0h1m1 0h4m1 0h1m2 0h7M2 3.5h1m5 0h1m5 0h5m4 0h2m3 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m1 0h2m1 0h4m4 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m4 0h4m1 0h1m2 0h1m3 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h3m1 0h1m2 0h1m1 0h5m1 0h1m2 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h2m1 0h1m1 0h1m1 0h2m3 0h1m5 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h3m1 0h1m2 0h1m2 0h1m1 0h2M2 10.5h1m1 0h5m3 0h6m1 0h1m1 0h1m3 0h1m2 0h5M5 11.5h1m1 0h1m2 0h1m2 0h1m4 0h5m2 0h1m2 0h2m1 0h2m1 0h1M2 12.5h4m2 0h6m3 0h1m1 0h1m2 0h2m2 0h2m2 0h1m1 0h2M3 13.5h1m3 0h1m2 0h1m2 0h2m1 0h1m5 0h2m2 0h3m1 0h3M2 14.5h2m1 0h1m1 0h2m1 0h1m8 0h1m4 0h3m2 0h3M3 15.5h3m1 0h1m1 0h4m3 0h4m1 0h1m3 0h2m1 0h1m2 0h1m1 0h2M2 16.5h1m1 0h2m1 0h3m6 0h1m3 0h1m1 0h1m1 0h1m1 0h3m1 0h2m1 0h1M2 17.5h5m4 0h4m1 0h1m1 0h1m4 0h1m3 0h2m1 0h3M4 18.5h6m1 0h1m1 0h3m2 0h2m1 0h2m1 0h4m1 0h3m2 0h1M5 19.5h3m3 0h2m3 0h1m1 0h1m1 0h4m1 0h1m2 0h2m1 0h4M2 20.5h2m1 0h2m1 0h1m4 0h1m1 0h5m2 0h3m1 0h5m1 0h2M2 21.5h1m1 0h2m3 0h1m1 0h1m5 0h1m3 0h4m2 0h1m1 0h6M3 22.5h1m2 0h3m3 0h5m1 0h2m1 0h2m3 0h2m1 0h3m1 0h2M2 23.5h1m3 0h1m2 0h1m1 0h7m1 0h5m1 0h1m2 0h1m3 0h1m1 0h1M2 24.5h1m2 0h2m1 0h2m1 0h1m1 0h1m3 0h4m1 0h1m3 0h2m1 0h1m1 0h1m1 0h1M2 25.5h1m1 0h2m6 0h1m3 0h2m5 0h2m2 0h6M2 26.5h1m1 0h1m3 0h2m7 0h3m4 0h8m2 0h1M10 27.5h1m1 0h2m1 0h2m1 0h4m3 0h2m3 0h1m1 0h1m1 0h1M2 28.5h7m2 0h5m1 0h1m1 0h1m2 0h5m1 0h1m1 0h1m1 0h1M2 29.5h1m5 0h1m1 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h5m3 0h5M2 30.5h1m1 0h3m1 0h1m1 0h2m4 0h1m3 0h2m2 0h1m1 0h6m1 0h2M2 31.5h1m1 0h3m1 0h1m1 0h2m4 0h3m1 0h3m1 0h4m2 0h5M2 32.5h1m1 0h3m1 0h1m1 0h4m1 0h1m6 0h1m1 0h1m3 0h2m2 0h1M2 33.5h1m5 0h1m2 0h5m2 0h1m2 0h4m5 0h3M2 34.5h7m1 0h3m6 0h1m4 0h4m1 0h1m3 0h1"/></svg>
+      <p style="margin-top:16px; font-size:40px" class="mono"><code>posthog-all-the-way-down</code></p>
     </div>
   </div>
   <p style="margin-top:36px; font-size:44px; font-weight:800">Questions?</p>
   <p class="footer-line">Not affiliated with PostHog (just standing in their office).</p>
   <aside class="notes">
     20:00–25:00. SAY: "Eval results, stored as PostHog events, on a PostHog dashboard. PostHog tested by PostHog, flagged by PostHog, scored into PostHog."
-    Replace left box with a real dashboard screenshot and right box with a QR code to the repo once it's published.
+    Replace left box with a real dashboard screenshot. The QR opens github.com/unlikelyzero/posthog-all-the-way-down: make the repo public first or it 404s.
     Leave this slide up through Q&A. Likely questions: cost of browser runs (3 runs, under 30 s each); why not HAR (need query kind from body);
     thresholds (calibrated from 5 baseline runs); does it work against Cloud (Cloud's terms bar publishing its performance results; self-hosted only).
   </aside>
@@ -500,9 +505,9 @@ GROUP BY method, route
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/notes/notes.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/highlight.js"></script>
+<script src="../vendor/reveal.js/dist/reveal.js"></script>
+<script src="../vendor/reveal.js/plugin/notes/notes.js"></script>
+<script src="../vendor/reveal.js/plugin/highlight/highlight.js"></script>
 <script>
   Reveal.initialize({
     width: 1920,

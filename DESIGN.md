@@ -1,13 +1,14 @@
 # posthog-all-the-way-down: design (handoff)
 
-> Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP,
+> Using PostHog to Test PostHog with Grafana k6 and PostHog MCP and the Grafana k6 MCP,
 > presented at the Grafana Meetup at PostHog. Talk outline: [TALK.md](TALK.md).
 
 **Thesis:** A protocol load test is a cached model of browser behavior. Keep comparing it
 with observed browser traffic, or a green test may be generating yesterday's load.
 
-**Status:** designed, not built. Nothing has been run against a live PostHog. Every
-unverified assumption is listed in [§9 Verification checklist](#9-verification-checklist-do-first).
+**Status:** built and running against a live self-hosted PostHog. Pinned to PostHog
+`54c04a0f494dc0821b87e95c19dcade17a633591` (node image `6bcb56fb6e5ff2200852f2080339050d32b98d20`,
+the last `nodejs/` change at or before it). §9 items 1–8 are verified on a live stack; 9–10 remain. Every unverified assumption is listed in [§9 Verification checklist](#9-verification-checklist-do-first).
 Do that section first; it decides whether the rest works as written.
 
 ---
@@ -21,7 +22,7 @@ Do that section first; it decides whether the rest works as written.
                  └──────▲───────────────────────────┬──────────────────────────────┘
                         │ UI clicks                 │ posthog-js network metrics
    k6/journey.js ───────┘                           ▼
-   (k6 browser)                          posthog.metrics  (CROSS-CHECK only)
+   (k6 browser)                          posthog.metrics  (cross-check; in production, the reference)
         │ page.on('request')                        │
         ▼                                           │
    browser.json ──► REFERENCE  ─────┐               │
@@ -38,6 +39,7 @@ Do that section first; it decides whether the rest works as written.
 |---|---|---|
 | Ground truth (gates the build) | k6 browser `page.on('request')` | Immediate, deterministic, sees request bodies. No ingestion lag and no alpha product on the stage-critical path. |
 | Cross-check ("PostHog saw it too") | PostHog `posthog.metrics` (posthog-js network metrics) | Shown next to the score. Never gates the result: if ingestion is late, the demo still works. |
+| Production reference | The same metrics, every session in a time window (`score.js --reference posthog --since 60m`, §5.3) | In production there are real users, and posthog-js already records every API call their browsers make. Same gates. The k6 browser plays the user only where there are none yet: on a PR, and on stage. |
 | Drift switch | PostHog feature flags (in the project PostHog uses for its own flags) | Flip live in the PostHog UI, with no rebuild. |
 | Results store | PostHog events (`meetup_eval_result`) | Eval history on a PostHog dashboard, completing the recursion joke. |
 | Repair | Claude Code + Grafana k6 MCP | `get_documentation` → edit → `validate_script` → `run_script`. |
@@ -108,7 +110,7 @@ services:
     extends: { file: docker-compose.base.yml, service: ingestion-logs }
     image: ${REGISTRY_URL}-node:${POSTHOG_NODE_TAG}
     environment:
-      PLUGIN_SERVER_MODE: 'ingestion-metrics'   # VERIFY exact value, see §9
+      PLUGIN_SERVER_MODE: 'ingestion-metrics'   # verified, §9 #1
     depends_on: [db, redis7, kafka]
 ```
 Only the cross-check needs the metrics pipeline. If it can't be made to work, drop the
@@ -120,8 +122,8 @@ All changes are in MIT-licensed paths (`frontend/src/…`, not `ee/`).
 | Change | File | Behavior |
 |---|---|---|
 | Flag `meetup-no-debounce` | `frontend/src/scenes/feature-flags/featureFlagsLogic.ts` (~L731-736) | When the flag is on, skip `await breakpoint(300)`. Every keystroke calls `loadFeatureFlags()`. |
-| Flag `meetup-n-plus-one` | same file, `loadFeatureFlagsSuccess` | When the flag is on, `GET` each result's detail endpoint (`…/feature_flags/:id/`), one request per row. |
-| Run-id attribute | `frontend/src/loadPostHogJS.tsx` (`metrics:` option, ~L63) | Add `meetup.run_id` from `localStorage.meetup_run_id` to each network metric, via the network-metrics `attributes` hook (posthog-js `network-metrics.ts:112`). **VERIFY** the config shape (§9). |
+| Flag `meetup-n-plus-one` | same file, `loadFeatureFlagsSuccess` | When the flag is on, `GET` each result's activity endpoint (`…/feature_flags/:id/activity/`), one request per row. The baseline never calls this route, so coverage fails; the detail route would only shift the mix. |
+| Run-id attribute | `frontend/src/loadPostHogJS.tsx` (`metrics:` option, ~L63) | Add `meetup.run_id` from `localStorage.meetup_run_id` to each network metric, via the network-metrics `attributes` hook (posthog-js `network-metrics.ts:112`): `metrics.network = { attributes: (request, response) => ({…}) }`, verified §9 #6. |
 | Marker | any loaded module | `console.debug('MEETUP_PATCH_V1')` |
 
 Read flags with literal keys through the existing feature-flag logic. They don't need to be
@@ -143,9 +145,10 @@ keys match PostHog's url.template exactly. Also map the project segment
 (/api/projects/<n>/, /api/environments/<n>/) to :id (it is all digits, so already covered).
 Drop query strings (same as PostHog).
 ```
-The `#kind` suffix fills PostHog's blind spot: the network metrics can't see the body of
-`POST /query/`, and most of the UI's traffic goes there. The PostHog cross-check therefore
-compares on the key *without* `#kind`.
+At the pinned SHA the UI sends query kinds in the path (`POST /api/projects/:id/query/HogQLQuery/`),
+so the path already separates them and PostHog's `url.template` sees the kind too. The `#kind`
+suffix only matters for clients that post to a bare `/query/`. The PostHog cross-check still
+compares on the key *without* `#kind`, since the metrics never see request bodies.
 
 ### 4.2 `journey.js`: k6 browser, the reference
 - **Auth:** log in once in `setup()`, or load a pre-validated storage state. Never sign up or log in on stage.
@@ -202,13 +205,18 @@ Record the calibration numbers in the README. On stage, say "calibrated from 5 b
 
 ### 5.3 PostHog cross-check (display only)
 ```sql
-SELECT attributes['http.request.method'] AS method,
-       attributes['url.template']        AS route,
-       sum(count)                        AS calls   -- histogram rows are pre-aggregated windows
-FROM posthog.metrics                               -- note the posthog. namespace
-WHERE metric_name = 'http.client.request.duration'
-  AND service_name = 'posthog-app'
-  AND attributes['meetup.run_id'] = {run_id}        -- per-run filter, not a time window
+-- posthog.metrics has no attributes column: attributes live on posthog.metric_series,
+-- keyed by series_fingerprint. Histogram rows are pre-aggregated windows, so calls = sum(count).
+SELECT s.attributes['http.request.method'] AS method,
+       s.attributes['url.template']        AS route,
+       sum(m.count)                        AS calls
+FROM posthog.metrics AS m
+JOIN (SELECT series_fingerprint, any(attributes) AS attributes
+      FROM posthog.metric_series GROUP BY series_fingerprint) AS s
+  ON m.series_fingerprint = s.series_fingerprint
+WHERE m.metric_name = 'http.client.request.duration'
+  AND m.service_name = 'posthog-app'
+  AND s.attributes['meetup.run_id'] = {run_id}      -- per-run filter, not a time window
 GROUP BY method, route
 ```
 Run it through `POST /api/projects/1/query/` (`{"query":{"kind":"HogQLQuery","query":…}}`)
@@ -219,6 +227,12 @@ passes, print "PostHog cross-check pending" and carry on.
 Fallback if the run-id attribute can't be added: filter by a tight time window around the
 run, taken from the journey's start and end timestamps. Batches are timestamped when
 they're sent, so pad the window by 15 s.
+
+**Users reference.** `score.js --reference posthog --since 60m` runs the same query with the run-id filter
+replaced by `m.timestamp >= now() - toIntervalMinute({minutes})`, so it counts every session posthog-js
+recorded, and scores the protocol run against that instead of browser files. Protocol keys drop `#kind`
+to match. `./demo.sh users [15m]` scores the stage protocol run this way. On a laptop the only users are
+k6 browsers, so this shows the mechanism, not a production mix.
 
 ### 5.4 Send results to PostHog
 After scoring, `POST /i/v0/e/` with the project API key:
@@ -289,7 +303,7 @@ For each (task, condition, trial):
 
 Also send each row to PostHog as a `meetup_agent_trial` event.
 
-Braintrust (PostHog's own eval platform) is **optional**. The JSONL maps one-to-one onto a
+Braintrust (a third-party eval platform, the one PostHog's MCP evals use) is **optional**. The JSONL maps one-to-one onto a
 Braintrust experiment if you want the same UI PostHog uses. It isn't required for the talk.
 
 ### 6.4 Reporting (honest statistics)
@@ -340,16 +354,16 @@ Docker 16 GB, close everything else, and rehearse under that limit while watchin
 
 Each item says how to confirm it and what to do if it fails.
 
-| # | Assumption | How to verify | If false |
-|---|---|---|---|
-| 1 | `PLUGIN_SERVER_MODE` value for the metrics ingestion server | Read `nodejs/src/servers/ingestion-metrics-server.ts` and the mode switch in `nodejs/src` at the pinned SHA | Use the correct value. If there's no such mode in the image, drop the cross-check. |
-| 2 | Metrics reach `posthog.metrics` on self-hosted | Send one sentinel metric; query it within 20 s | Drop the cross-check. The demo still works. |
-| 3 | `collectstatic` overlay serves the patched JS | `curl` the page and its JS for `MEETUP_PATCH_V1` | Build the full image from the patched source instead (slow but reliable). |
-| 4 | Self-capture works outside dev mode | Events and `$feature_flag_called` appear in project 1 | Point `JS_POSTHOG_*` at PostHog Cloud (as a recorder only, not a test target). Note: Cloud's terms bar publishing performance results of Cloud itself. |
-| 5 | Flag flip reaches the page | Hard reload, then `posthog.getFeatureFlag(key)` returns true within 10 s | Increase the poll; worst case, restart `web` (pre-recorded fallback). |
-| 6 | posthog-js network-metrics `attributes` config shape | Read posthog-js types for `metrics.network` at the pinned version | Use the time-window fallback in §5.3. |
-| 7 | k6 v2 browser `page.on('request')` and `request.postData()` | A tiny k6 script against any page | Use `page.route` or HAR; worst case, capture with Chrome DevTools Protocol. |
-| 8 | Headless k6 browser isn't filtered as a bot | Network metrics appear for the k6 run (the user-agent opt-out only applies on `localhost`, loadPostHogJS.tsx:46) | Serve on `localhost`, or override the user agent in the k6 browser context. |
+| # | Assumption | How to verify | If false | Result |
+|---|---|---|---|---|
+| 1 | `PLUGIN_SERVER_MODE` value for the metrics ingestion server | Read `nodejs/src/servers/ingestion-metrics-server.ts` and the mode switch in `nodejs/src` at the pinned SHA | Use the correct value. If there's no such mode in the image, drop the cross-check. | **Verified:** `ingestion-metrics` (`nodejs/src/common/config.ts`, `PluginServerMode.ingestion_metrics`). It also reads `METRICS_REDIS_HOST`. |
+| 2 | Metrics reach `posthog.metrics` on self-hosted | Send one sentinel metric; query it within 20 s | Drop the cross-check. The demo still works. | **Verified:** network metrics arrive in `posthog.metrics` with the `meetup.run_id` attribute; per-route counts for a baseline run agree 100% with the k6 browser capture. Reusing a run id merges runs, so give each run a fresh one. |
+| 3 | `collectstatic` overlay serves the patched JS | `curl` the page and its JS for `MEETUP_PATCH_V1` | Build the full image from the patched source instead (slow but reliable). | **Verified** on both build paths: served chunks contain the marker and both flag keys. |
+| 4 | Self-capture works outside dev mode | Events and `$feature_flag_called` appear in project 1 | Point `JS_POSTHOG_*` at PostHog Cloud (as a recorder only, not a test target). Note: Cloud's terms bar publishing performance results of Cloud itself. | **Verified:** the page's posthog-js runs with project 1's token. |
+| 5 | Flag flip reaches the page | Hard reload, then `posthog.getFeatureFlag(key)` returns true within 10 s | Increase the poll; worst case, restart `web` (pre-recorded fallback). | **Verified**, once `share/GeoLite2-City.mmdb` exists: the feature-flags service exits at startup without it, and `/flags` returns 502. The hobby installer downloads it; a hand-built stack must too. |
+| 6 | posthog-js network-metrics `attributes` config shape | Read posthog-js types for `metrics.network` at the pinned version | Use the time-window fallback in §5.3. | **Verified:** `metrics.network` takes `{ name?, attributes?(request, response) }`; `attributes` is merged over the defaults (`packages/types/src/posthog-config.ts` `NetworkMetricsConfig`). |
+| 7 | k6 v2 browser `page.on('request')` and `request.postData()` | A tiny k6 script against any page | Use `page.route` or HAR; worst case, capture with Chrome DevTools Protocol. | **Verified** on k6 v2.3.0: both work. `resourceType()` returns `Fetch` / `XHR` (capitalized). |
+| 8 | Headless k6 browser isn't filtered as a bot | Network metrics appear for the k6 run (the user-agent opt-out only applies on `localhost`, loadPostHogJS.tsx:46) | Serve on `localhost`, or override the user agent in the k6 browser context. | **Verified** when served on `localhost`: metrics for k6 browser runs arrive tagged with their run id. |
 | 9 | Local HTTPS and auth | k6 logs in with the stored state against `https://<DOMAIN>` | Trust Caddy's local CA and use one hostname everywhere. |
 | 10 | Memory | Rehearse the full demo while watching swap | Disable non-essential services (Temporal UI, Elasticsearch if unused), or use a remote machine. |
 
@@ -357,4 +371,4 @@ Each item says how to confirm it and what to do if it fails.
 
 - Payload fidelity beyond `#kind`, and latency/SLO fidelity. Mention them as limits on stage.
 - Replay-to-test generation, PostHog self-driving, and LLM-judge graders.
-- Production RUM mixes. The reference is a *journey contract*, not a model of the user population. Say so.
+- Per-page scoping of the users reference. Network metrics carry no page attribute, so it covers every page users visit, including ones the journey never meant to load-test. Say so.

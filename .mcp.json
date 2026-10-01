@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "k6": { "command": "mcp-k6" },
+    "posthog": {
+      "type": "http",
+      "url": "http://localhost:8787/mcp",
+      "headers": { "Authorization": "Bearer ${POSTHOG_PERSONAL_API_KEY}" }
+    }
+  }
+}
