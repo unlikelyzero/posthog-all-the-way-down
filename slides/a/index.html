@@ -124,6 +124,12 @@
   .tiles .card p.stat { font-size: 96px; font-weight: 900; line-height: 1.1; }
   .mono { font-family: "JetBrains Mono", Menlo, monospace; font-size: 28px; margin: 0; line-height: 1.5; }
 
+  .take { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 10px; }
+  .take .card p { margin: 0; }
+  .take .n { font-size: 64px; font-weight: 900; line-height: 1; }
+  .take .claim { font-size: 44px; font-weight: 900; line-height: 1.15; margin: 14px 0 16px !important; }
+  .take .dim { font-size: 28px; line-height: 1.35; }
+
   /* Subtitle face: pops in happy, then frowns when the "out of date" line appears */
   .face { display: inline-block; height: 0.9em; width: 0.9em; vertical-align: -0.1em; margin-left: 0.15em; transform: scale(0); }
   .face .head { fill: var(--pass); transition: fill .6s ease .15s; }
@@ -469,19 +475,36 @@ page.on('request', (req) => {
 
 <!-- 13 · Takeaways + thesis -->
 <section>
-  <ol style="font-size:46px;font-weight:700">
-    <li>Your load test is a cached model of the frontend. <strong>Check it for staleness.</strong></li>
-    <li class="fragment">Compare it with what users' browsers send: a <span class="k6">k6</span> browser on a PR, <span class="ph">PostHog</span> in production.</li>
-    <li class="fragment">Let an agent fix it: <span class="ph">PostHog MCP</span> for what users do, <span class="k6">k6 MCP</span> to validate and run. Then <strong>eval the agent</strong>, and check it actually uses its tools.</li>
-  </ol>
-  <p class="fragment" style="font-size:46px;font-weight:900;margin-top:50px;color:var(--hot)">
-    A protocol load test is a cached model of browser behavior. Keep comparing it with observed browser
-    traffic, or a green test may be generating yesterday's load.
-  </p>
+  <p class="kicker">Three things to take home</p>
+  <div class="take">
+    <div class="card fragment" style="border-top:8px solid var(--fail)">
+      <p class="n fail">1</p>
+      <p class="claim">A green load test can be testing yesterday's app.</p>
+      <p class="dim">One PR: the browser went from 4 to 20–26 flag-list calls. The load test sent 4, and passed.</p>
+    </div>
+    <div class="card fragment" style="border-top:8px solid var(--hot)">
+      <p class="n ph">2</p>
+      <p class="claim">Score it against what users actually send.</p>
+      <p class="dim">A <span class="k6">k6</span> browser on a PR, <span class="ph">PostHog</span> in production. The same gates catch drift and tests in the wrong part of the app.</p>
+    </div>
+    <div class="card fragment" style="border-top:8px solid var(--ai)">
+      <p class="n ai">3</p>
+      <p class="claim">Let an agent keep it current.</p>
+      <p class="dim"><span class="ph">PostHog MCP</span>: what users do. <span class="k6">Grafana k6 MCP</span>: validate and run the fix. Then check it really used them.</p>
+    </div>
+  </div>
+  <p class="fragment" style="font-size:44px;font-weight:900;line-height:1.25;margin-top:44px"><span class="k6">Grafana k6</span> makes the test match your users. <span class="ph">PostHog</span> shows you who they are now.<br><span class="dim">Keep them in sync, or a green test is generating yesterday's load.</span></p>
   <aside class="notes">
-    [19:00 to 20:00] Three takeaways, one click each. Then the thesis, read slowly, no joke:
-    "A protocol load test is a cached model of browser behavior. Keep comparing it with observed
-    browser traffic, or a green test may be generating yesterday's load."
+    [~1 min] Three takeaways, one click each.
+    One: a green load test can be testing yesterday's app. Our one PR took the browser from 4 to 20 to 26
+    flag-list calls; the load test kept sending 4 and kept passing.
+    Two: score it against what users actually send. On a PR a k6 browser plays the user; in production,
+    PostHog's network metrics are the users. The same gates catch drift, and a test aimed at the wrong part
+    of the app.
+    Three: let an agent keep it current. The PostHog MCP tells it what users do, the k6 MCP validates and runs
+    the fix. And check it actually used them: offered the k6 MCP alone, our agent ignored it.
+    Click. The close, read slowly: Grafana k6 makes the test match your users. PostHog shows you who they
+    are now. Keep them in sync, or a green test is generating yesterday's load.
     If asked about limits: request bodies beyond the query kind aren't compared, latency fidelity isn't
     measured, the k6 reference is one journey, the PostHog reference has no per-page filter, and PostHog's
     metrics product is alpha.
