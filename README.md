@@ -1,6 +1,6 @@
 # posthog-all-the-way-down
 
-> Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP,
+> Using PostHog to Test PostHog with Grafana k6 and PostHog MCP and the Grafana k6 MCP,
 > presented at the Grafana Meetup at PostHog.
 
 A protocol load test is a cached model of browser behavior. This project keeps comparing

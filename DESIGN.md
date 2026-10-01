@@ -1,6 +1,6 @@
 # posthog-all-the-way-down: design (handoff)
 
-> Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP,
+> Using PostHog to Test PostHog with Grafana k6 and PostHog MCP and the Grafana k6 MCP,
 > presented at the Grafana Meetup at PostHog. Talk outline: [TALK.md](TALK.md).
 
 **Thesis:** A protocol load test is a cached model of browser behavior. Keep comparing it

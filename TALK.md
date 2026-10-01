@@ -1,4 +1,4 @@
-# Using PostHog to Test PostHog with Grafana k6 and PostHog and the Grafana k6 MCP
+# Using PostHog to Test PostHog with Grafana k6 and PostHog MCP and the Grafana k6 MCP
 ### presented at the Grafana Meetup at PostHog
 
 *Subtitle slide:* Your load test passed. It's also lying.
